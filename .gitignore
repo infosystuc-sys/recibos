@@ -1,0 +1,29 @@
+# Recibos reales de Tango: contienen CUILes, nombres y sueldos de personas.
+# Nunca deben salir de esta máquina.
+/Ejemplo*/
+/recibos-prueba/
+*.pdf
+
+# Entorno y secretos
+.env
+.env*.local
+.vercel
+
+# Dependencias y build
+node_modules/
+.next/
+out/
+dist/
+
+# Pruebas
+/test-results/
+/playwright-report/
+/coverage/
+
+# Espacio de trabajo del proceso de ejecución de planes
+.superpowers/
+
+# Sistema operativo
+Thumbs.db
+Desktop.ini
+.DS_Store
