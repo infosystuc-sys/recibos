@@ -11,15 +11,109 @@ const servicio = createClient(URL, SERVICIO, { auth: { persistSession: false } }
 const CUIL_ANA = '20271032758'
 const CUIL_LUIS = '20192021414'
 const CLAVE = 'prueba-rls-2026'
+const RAZON_SOCIAL = 'RLS Test SA'
+const EMAIL_ADMIN = `rls-admin-test@${DOMINIO}`
 
-let empresaId: string
-let personaAna: string
-let personaLuis: string
+let empresaId: string | undefined
+let personaAna: string | undefined
+let personaLuis: string | undefined
 let reciboAna: string
 let reciboLuis: string
-let usuarioAna: string
-let usuarioLuis: string
+let usuarioAna: string | undefined
+let usuarioLuis: string | undefined
+let usuarioAdmin: string | undefined
+let liquidacionIds: string[] = []
 let clienteAna: SupabaseClient
+
+// Limpieza best-effort: nunca lanza, solo avisa. Así un paso de limpieza que
+// falla no corta los siguientes (ver I-3 de la revisión de la Ronda 1).
+async function limpiar(paso: string, accion: () => PromiseLike<{ error: unknown }>) {
+  try {
+    const { error } = await accion()
+    if (error) console.warn(`Limpieza (${paso}) con error no fatal:`, error)
+  } catch (error) {
+    console.warn(`Limpieza (${paso}) con excepción no fatal:`, error)
+  }
+}
+
+// Busca un usuario de auth por email recorriendo listUsers, porque el cliente
+// admin no ofrece un filtro por email directo. Se usa solo para la limpieza
+// defensiva de usuarios que pudieron quedar huérfanos de una corrida anterior.
+async function borrarUsuarioPorEmail(email: string) {
+  try {
+    const { data, error } = await servicio.auth.admin.listUsers({ page: 1, perPage: 200 })
+    if (error || !data) return
+    const usuario = data.users.find((u) => u.email === email)
+    if (usuario) await servicio.auth.admin.deleteUser(usuario.id)
+  } catch {
+    // Best-effort: si la búsqueda falla no bloquea el resto de la limpieza.
+  }
+}
+
+// Deja el proyecto como si el test nunca hubiera corrido, aunque una corrida
+// anterior haya quedado a mitad de camino (beforeAll fallido). Se limpia por
+// los identificadores fijos del test (CUILs, razón social, email de admin),
+// no por relaciones que podrían no haberse llegado a crear.
+async function limpiezaDefensiva() {
+  const { data: personasPrevias } = await servicio
+    .from('personas')
+    .select('id')
+    .in('cuil', [CUIL_ANA, CUIL_LUIS])
+  const personaIdsPrevios = (personasPrevias ?? []).map((p) => p.id)
+
+  const { data: empresasPrevias } = await servicio
+    .from('empresas')
+    .select('id')
+    .eq('razon_social', RAZON_SOCIAL)
+  const empresaIdsPrevios = (empresasPrevias ?? []).map((e) => e.id)
+
+  const legajoIdsPrevios: string[] = []
+  if (personaIdsPrevios.length > 0) {
+    const { data } = await servicio.from('legajos').select('id').in('persona_id', personaIdsPrevios)
+    legajoIdsPrevios.push(...(data ?? []).map((l) => l.id))
+  }
+  if (empresaIdsPrevios.length > 0) {
+    const { data } = await servicio.from('legajos').select('id').in('empresa_id', empresaIdsPrevios)
+    legajoIdsPrevios.push(...(data ?? []).map((l) => l.id))
+  }
+
+  let liquidacionIdsPrevias: string[] = []
+  if (empresaIdsPrevios.length > 0) {
+    const { data } = await servicio.from('liquidaciones').select('id').in('empresa_id', empresaIdsPrevios)
+    liquidacionIdsPrevias = (data ?? []).map((q) => q.id)
+  }
+
+  if (legajoIdsPrevios.length > 0) {
+    await limpiar('recibos por legajo previo', () =>
+      servicio.from('recibos').delete().in('legajo_id', legajoIdsPrevios),
+    )
+  }
+  if (liquidacionIdsPrevias.length > 0) {
+    await limpiar('recibos por liquidación previa', () =>
+      servicio.from('recibos').delete().in('liquidacion_id', liquidacionIdsPrevias),
+    )
+    await limpiar('liquidaciones previas', () =>
+      servicio.from('liquidaciones').delete().in('id', liquidacionIdsPrevias),
+    )
+  }
+  if (legajoIdsPrevios.length > 0) {
+    await limpiar('legajos previos', () => servicio.from('legajos').delete().in('id', legajoIdsPrevios))
+  }
+  if (personaIdsPrevios.length > 0) {
+    await limpiar('personas previas', () => servicio.from('personas').delete().in('id', personaIdsPrevios))
+  }
+  if (empresaIdsPrevios.length > 0) {
+    await limpiar('empresas previas', () => servicio.from('empresas').delete().in('id', empresaIdsPrevios))
+  }
+
+  await limpiar('admin_usuarios previo', () =>
+    servicio.from('admin_usuarios').delete().eq('email', EMAIL_ADMIN),
+  )
+
+  await borrarUsuarioPorEmail(`${CUIL_ANA}@${DOMINIO}`)
+  await borrarUsuarioPorEmail(`${CUIL_LUIS}@${DOMINIO}`)
+  await borrarUsuarioPorEmail(EMAIL_ADMIN)
+}
 
 async function crearEmpleado(cuil: string, nombre: string, legajo: number) {
   const { data: usuario, error: errUsuario } = await servicio.auth.admin.createUser({
@@ -29,30 +123,41 @@ async function crearEmpleado(cuil: string, nombre: string, legajo: number) {
   })
   if (errUsuario) throw errUsuario
 
-  const { data: persona, error: errPersona } = await servicio
-    .from('personas')
-    .insert({ cuil, apellido_nombre: nombre, auth_user_id: usuario.user.id, estado: 'activo' })
-    .select('id')
-    .single()
-  if (errPersona) throw errPersona
+  try {
+    const { data: persona, error: errPersona } = await servicio
+      .from('personas')
+      .insert({ cuil, apellido_nombre: nombre, auth_user_id: usuario.user.id, estado: 'activo' })
+      .select('id')
+      .single()
+    if (errPersona) throw errPersona
 
-  const { data: leg, error: errLegajo } = await servicio
-    .from('legajos')
-    .insert({ empresa_id: empresaId, persona_id: persona.id, numero: legajo })
-    .select('id')
-    .single()
-  if (errLegajo) throw errLegajo
+    const { data: leg, error: errLegajo } = await servicio
+      .from('legajos')
+      .insert({ empresa_id: empresaId, persona_id: persona.id, numero: legajo })
+      .select('id')
+      .single()
+    if (errLegajo) throw errLegajo
 
-  return { usuarioId: usuario.user.id, personaId: persona.id, legajoId: leg.id }
+    return { usuarioId: usuario.user.id, personaId: persona.id, legajoId: leg.id }
+  } catch (error) {
+    // Si algo después de crear el usuario de auth falla, no lo dejamos
+    // huérfano: la corrida siguiente chocaría con "email already registered"
+    // (ver I-3 de la revisión de la Ronda 1).
+    await servicio.auth.admin.deleteUser(usuario.user.id).catch(() => {})
+    throw error
+  }
 }
 
 beforeAll(async () => {
-  const { data: empresa } = await servicio
+  await limpiezaDefensiva()
+
+  const { data: empresa, error: errEmpresa } = await servicio
     .from('empresas')
-    .insert({ razon_social: 'RLS Test SA', cuit: '30999999990', nombre_corto: 'RLS Test' })
+    .insert({ razon_social: RAZON_SOCIAL, cuit: '30999999990', nombre_corto: 'RLS Test' })
     .select('id')
     .single()
-  empresaId = empresa!.id
+  if (errEmpresa) throw errEmpresa
+  empresaId = empresa.id
 
   const ana = await crearEmpleado(CUIL_ANA, 'Prueba, Ana', 901)
   const luis = await crearEmpleado(CUIL_LUIS, 'Prueba, Luis', 902)
@@ -61,7 +166,23 @@ beforeAll(async () => {
   usuarioAna = ana.usuarioId
   usuarioLuis = luis.usuarioId
 
-  const { data: liquidacion } = await servicio
+  // Fila de admin_usuarios real: sin ella, el caso "NO puede leer la tabla de
+  // administradores" pasaría vacío incluso con una política rota, porque la
+  // tabla estaría vacía de todos modos (I-2 de la revisión de la Ronda 1).
+  const { data: usuarioAdminData, error: errUsuarioAdmin } = await servicio.auth.admin.createUser({
+    email: EMAIL_ADMIN,
+    password: CLAVE,
+    email_confirm: true,
+  })
+  if (errUsuarioAdmin) throw errUsuarioAdmin
+  usuarioAdmin = usuarioAdminData.user.id
+
+  const { error: errAdminUsuario } = await servicio
+    .from('admin_usuarios')
+    .insert({ id: usuarioAdmin, nombre: 'Admin RLS Test', email: EMAIL_ADMIN, rol: 'consulta' })
+  if (errAdminUsuario) throw errAdminUsuario
+
+  const { data: liquidacion, error: errLiquidacion } = await servicio
     .from('liquidaciones')
     .insert({
       empresa_id: empresaId, periodo: 202604, tipo: 'MEN', dato_fijo: 9999,
@@ -69,38 +190,43 @@ beforeAll(async () => {
     })
     .select('id')
     .single()
+  if (errLiquidacion) throw errLiquidacion
 
-  const { data: borrador } = await servicio
+  const { data: borrador, error: errBorrador } = await servicio
     .from('liquidaciones')
     .insert({ empresa_id: empresaId, periodo: 202605, tipo: 'MEN', dato_fijo: 9998 })
     .select('id')
     .single()
+  if (errBorrador) throw errBorrador
 
-  const recibos = await servicio
+  liquidacionIds = [liquidacion.id, borrador.id]
+
+  const { data: recibosCreados, error: errRecibos } = await servicio
     .from('recibos')
     .insert([
       {
-        liquidacion_id: liquidacion!.id, legajo_id: ana.legajoId,
+        liquidacion_id: liquidacion.id, legajo_id: ana.legajoId,
         storage_path: `${empresaId}/202604/MEN-9999/901-v1.pdf`,
         nombre_original: 'a.pdf', sha256: 'a'.repeat(64), bytes: 100, cuil_archivo: CUIL_ANA,
       },
       {
-        liquidacion_id: liquidacion!.id, legajo_id: luis.legajoId,
+        liquidacion_id: liquidacion.id, legajo_id: luis.legajoId,
         storage_path: `${empresaId}/202604/MEN-9999/902-v1.pdf`,
         nombre_original: 'b.pdf', sha256: 'b'.repeat(64), bytes: 100, cuil_archivo: CUIL_LUIS,
       },
       {
-        liquidacion_id: borrador!.id, legajo_id: ana.legajoId,
+        liquidacion_id: borrador.id, legajo_id: ana.legajoId,
         storage_path: `${empresaId}/202605/MEN-9998/901-v1.pdf`,
         nombre_original: 'c.pdf', sha256: 'c'.repeat(64), bytes: 100, cuil_archivo: CUIL_ANA,
       },
     ])
     .select('id, legajo_id, liquidacion_id')
+  if (errRecibos) throw errRecibos
 
-  reciboAna = recibos.data!.find(
-    (r) => r.legajo_id === ana.legajoId && r.liquidacion_id === liquidacion!.id,
+  reciboAna = recibosCreados.find(
+    (r) => r.legajo_id === ana.legajoId && r.liquidacion_id === liquidacion.id,
   )!.id
-  reciboLuis = recibos.data!.find((r) => r.legajo_id === luis.legajoId)!.id
+  reciboLuis = recibosCreados.find((r) => r.legajo_id === luis.legajoId)!.id
 
   clienteAna = createClient(URL, ANON, { auth: { persistSession: false } })
   const { error } = await clienteAna.auth.signInWithPassword({
@@ -111,14 +237,40 @@ beforeAll(async () => {
 }, 60_000)
 
 afterAll(async () => {
-  await servicio.from('recibos').delete().eq('cuil_archivo', CUIL_ANA)
-  await servicio.from('recibos').delete().eq('cuil_archivo', CUIL_LUIS)
-  await servicio.from('liquidaciones').delete().eq('empresa_id', empresaId)
-  await servicio.from('legajos').delete().eq('empresa_id', empresaId)
-  await servicio.from('personas').delete().in('id', [personaAna, personaLuis])
-  await servicio.from('empresas').delete().eq('id', empresaId)
-  await servicio.auth.admin.deleteUser(usuarioAna)
-  await servicio.auth.admin.deleteUser(usuarioLuis)
+  // Acotado a las liquidaciones que este test creó: nunca por cuil_archivo
+  // suelto, que en el mismo proyecto de la aplicación podría alcanzar
+  // recibos reales de una persona con ese CUIL (I-4 de la revisión de la
+  // Ronda 1). Cada paso es best-effort y no corta a los siguientes (I-3).
+  if (liquidacionIds.length > 0) {
+    await limpiar('recibos', () =>
+      servicio.from('recibos').delete().in('liquidacion_id', liquidacionIds),
+    )
+    await limpiar('liquidaciones', () =>
+      servicio.from('liquidaciones').delete().in('id', liquidacionIds),
+    )
+  }
+  if (empresaId) {
+    await limpiar('legajos', () => servicio.from('legajos').delete().eq('empresa_id', empresaId!))
+  }
+  const idsPersonas = [personaAna, personaLuis].filter((id): id is string => Boolean(id))
+  if (idsPersonas.length > 0) {
+    await limpiar('personas', () => servicio.from('personas').delete().in('id', idsPersonas))
+  }
+  if (empresaId) {
+    await limpiar('empresas', () => servicio.from('empresas').delete().eq('id', empresaId!))
+  }
+  if (usuarioAdmin) {
+    await limpiar('admin_usuarios', () =>
+      servicio.from('admin_usuarios').delete().eq('id', usuarioAdmin!),
+    )
+  }
+  const idsAuth = [usuarioAna, usuarioLuis, usuarioAdmin].filter((id): id is string => Boolean(id))
+  for (const id of idsAuth) {
+    await limpiar(`auth.users ${id}`, async () => {
+      const { error } = await servicio.auth.admin.deleteUser(id)
+      return { error }
+    })
+  }
 })
 
 describe('RLS del empleado', () => {
@@ -153,6 +305,9 @@ describe('RLS del empleado', () => {
   })
 
   it('NO puede leer la tabla de administradores', async () => {
+    // Con una fila real en admin_usuarios (creada en beforeAll), este caso
+    // solo pasa si la política realmente filtra: antes, con la tabla vacía,
+    // pasaba igual aunque la política estuviera rota (I-2 de la Ronda 1).
     const { data } = await clienteAna.from('admin_usuarios').select('id')
     expect(data).toEqual([])
   })
