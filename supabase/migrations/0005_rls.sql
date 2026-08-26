@@ -180,8 +180,18 @@ create policy empleado_lee_sus_conformidades on conformidades
 create policy empleado_lee_sus_observaciones on observaciones
   for select to authenticated using (persona_id = persona_actual());
 
+-- El with check exige, además de que la observación quede a nombre de la
+-- propia persona, que el recibo referenciado sea realmente suyo: si no,
+-- un empleado podría atar un reclamo al recibo de un tercero.
 create policy empleado_crea_sus_observaciones on observaciones
-  for insert to authenticated with check (persona_id = persona_actual());
+  for insert to authenticated with check (
+    persona_id = (select persona_actual())
+    and exists (
+      select 1 from recibos r
+      join legajos l on l.id = r.legajo_id
+      where r.id = observaciones.recibo_id and l.persona_id = (select persona_actual())
+    )
+  );
 
 create policy empleado_gestiona_sus_push on push_subscriptions
   for all to authenticated

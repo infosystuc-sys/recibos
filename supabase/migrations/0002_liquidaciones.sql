@@ -22,9 +22,10 @@ create table liquidaciones (
   constraint periodo_valido check (
     periodo between 200001 and 299912 and (periodo % 100) between 1 and 12
   ),
-  constraint publicada_coherente check (
-    (estado = 'publicada') = (publicada_at is not null)
-  )
+  -- No exige lo contrario (que anulada/borrador tengan publicada_at nulo):
+  -- una liquidación publicada y luego anulada conserva su publicada_at
+  -- original como evidencia de cuándo se publicó de verdad.
+  constraint publicada_coherente check (estado <> 'publicada' or publicada_at is not null)
 );
 
 comment on column liquidaciones.periodo   is 'AAAAMM, ej. 202604.';
