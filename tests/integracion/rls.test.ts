@@ -39,14 +39,49 @@ async function limpiar(paso: string, accion: () => PromiseLike<{ error: unknown 
 // Busca un usuario de auth por email recorriendo listUsers, porque el cliente
 // admin no ofrece un filtro por email directo. Se usa solo para la limpieza
 // defensiva de usuarios que pudieron quedar huérfanos de una corrida anterior.
+// Pagina hasta encontrar el email o hasta agotar los resultados: quedarse en
+// la página 1 pierde en silencio a los huérfanos una vez que auth.users (el
+// mismo proyecto que usa la aplicación) supera perPage usuarios, que es
+// exactamente el escenario que esta función existe para cubrir.
+const BUSQUEDA_USUARIO_PER_PAGE = 200
+const BUSQUEDA_USUARIO_MAX_PAGINAS = 50
+
 async function borrarUsuarioPorEmail(email: string) {
   try {
-    const { data, error } = await servicio.auth.admin.listUsers({ page: 1, perPage: 200 })
-    if (error || !data) return
-    const usuario = data.users.find((u) => u.email === email)
-    if (usuario) await servicio.auth.admin.deleteUser(usuario.id)
-  } catch {
-    // Best-effort: si la búsqueda falla no bloquea el resto de la limpieza.
+    for (let pagina = 1; pagina <= BUSQUEDA_USUARIO_MAX_PAGINAS; pagina++) {
+      const { data, error } = await servicio.auth.admin.listUsers({
+        page: pagina,
+        perPage: BUSQUEDA_USUARIO_PER_PAGE,
+      })
+      if (error || !data) {
+        console.warn(`No se pudo listar usuarios de auth (página ${pagina}) buscando ${email}:`, error)
+        return
+      }
+
+      const usuario = data.users.find((u) => u.email === email)
+      if (usuario) {
+        await servicio.auth.admin.deleteUser(usuario.id)
+        return
+      }
+
+      if (data.users.length < BUSQUEDA_USUARIO_PER_PAGE) {
+        // Última página: se agotaron los resultados sin encontrarlo. No hay
+        // huérfano que limpiar.
+        return
+      }
+    }
+
+    // Se llegó al tope de páginas sin encontrar el email ni agotar los
+    // resultados: puede haber un huérfano más allá del tope. Se deja
+    // constancia en vez de fallar en silencio.
+    console.warn(
+      `borrarUsuarioPorEmail: se alcanzó el tope de ${BUSQUEDA_USUARIO_MAX_PAGINAS} páginas ` +
+        `sin encontrar ni agotar la búsqueda de ${email}. Revisar manualmente si quedó un usuario huérfano.`,
+    )
+  } catch (error) {
+    // Best-effort: si la búsqueda falla no bloquea el resto de la limpieza,
+    // pero se avisa para no perder el rastro del huérfano.
+    console.warn(`Excepción buscando/borrando el usuario de auth ${email}:`, error)
   }
 }
 
