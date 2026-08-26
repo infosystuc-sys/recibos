@@ -1,7 +1,10 @@
 import { createHash, randomInt } from 'node:crypto'
 
-/** Sin O/0, I/1/l ni S/5: el código se dicta por teléfono o se copia de un papel. */
-const ALFABETO = 'ABCDEFGHJKMNPQRTUVWXYZ2346789'
+/**
+ * Sin O/0, I/1/l, S/5 ni B/V (B y V suenan igual en español rioplatense):
+ * el código se dicta por teléfono o se copia de un papel.
+ */
+const ALFABETO = 'ABCDEFGHJKMNPQRTUWXYZ2346789'
 const LARGO = 8
 
 export function generarCodigo(): string {

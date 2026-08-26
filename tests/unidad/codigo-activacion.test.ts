@@ -8,7 +8,7 @@ describe('generarCodigo', () => {
 
   it('evita caracteres que se confunden al dictarlos', () => {
     for (let i = 0; i < 200; i++) {
-      expect(generarCodigo()).not.toMatch(/[O0I1lS5]/)
+      expect(generarCodigo()).not.toMatch(/[O0I1lS5V]/)
     }
   })
 
