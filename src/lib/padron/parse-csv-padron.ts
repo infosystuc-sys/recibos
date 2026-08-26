@@ -130,14 +130,26 @@ export function parsearCsvPadron(texto: string): { filas: FilaPadron[]; errores:
       continue
     }
 
+    const activoCrudo = (crudo.activo ?? '').trim().toLowerCase()
+    let activo: boolean
+    if (activoCrudo === '' || VERDADEROS.has(activoCrudo)) {
+      activo = true
+    } else if (FALSOS.has(activoCrudo)) {
+      activo = false
+    } else {
+      errores.push({
+        linea: numeroLinea,
+        motivo: `El valor "${crudo.activo}" de la columna "activo" no se reconoce (usá SI/NO, 1/0, true/false, activo/inactivo/baja)`,
+        contenido: linea,
+      })
+      continue
+    }
+
     if (legajosVistos.has(legajo)) {
       errores.push({ linea: numeroLinea, motivo: `El legajo ${legajo} está duplicado en el archivo`, contenido: linea })
       continue
     }
     legajosVistos.add(legajo)
-
-    const activoCrudo = (crudo.activo ?? '').trim().toLowerCase()
-    const activo = activoCrudo === '' ? true : !FALSOS.has(activoCrudo) && VERDADEROS.has(activoCrudo)
 
     filas.push({
       legajo,

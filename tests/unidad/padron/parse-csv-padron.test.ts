@@ -73,4 +73,13 @@ describe('parsearCsvPadron', () => {
     expect(filas).toHaveLength(1)
     expect(errores).toEqual([])
   })
+
+  it('reporta un valor desconocido en la columna activo en vez de marcar inactivo en silencio', () => {
+    const { filas, errores } = parsearCsvPadron(`${CABECERA}\n201;20-27103275-8;Pérez, Ana;;;;Vigente`)
+
+    expect(filas).toHaveLength(0)
+    expect(errores).toHaveLength(1)
+    expect(errores[0].motivo).toMatch(/activo/i)
+    expect(errores[0].motivo).toContain('Vigente')
+  })
 })
