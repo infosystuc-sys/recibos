@@ -47,7 +47,7 @@ RS_202604_1QA_680_201_20-27103275-8.pdf
 | Rama principal | `main`. Fase 1B y Fase 2 se commitean directo en `main`. |
 | HEAD | `ccbcea7` |
 | Commits | ~62 (más el `4e4a815` de base). **Pusheados hasta `25383a7`**; lo posterior (hardening, PDF de constancias, fixes) puede estar sin pushear — hacer `git push origin main`. |
-| Tests | **78 unitarios** + **13 de integración** + **3 E2E** de ingreso, todos verdes. Build y `tsc` limpios. Fase 1B/2 se verificaron con scripts E2E ad-hoc (ya borrados). |
+| Tests | **84 unitarios** + **13 de integración** + **3 E2E** de ingreso, todos verdes. Build y `tsc` limpios. Fase 1B/2 se verificaron con scripts E2E ad-hoc (ya borrados). |
 | Migraciones | **0001–0009 aplicadas.** 0007 rate limiting, 0008 hardening de RLS, 0009 índices. |
 | Advisors | Solo quedan: `rls_enabled_no_policy` en `codigos_activacion`/`intentos` (deliberado), `authenticated_security_definer_function_executable` x6 (funciones de RLS, inevitable, cada una chequea `auth.uid()` adentro), y `auth_leaked_password_protection` (solo Pro). |
 | TypeScript | `npx tsc --noEmit` limpio, modo estricto |
@@ -238,9 +238,17 @@ Todo verificado end-to-end contra Supabase real con scripts ad-hoc:
 | PDF combinado de constancias (`/admin/liquidaciones/[id]/constancias`), «recordar a los pendientes» en el tablero, refactor del comprobante a `lib/comprobante-pdf.ts` | — | `be119e4`, `7d7bcd8` |
 | Hardening de RLS (`0008`, `0009`), nav responsive, `importarPadron` no pisa email/teléfono con vacío | — | `2218a3c`, `ccbcea7` |
 
-**Estado de los canales:** push funciona (VAPID ya generado en `.env.local`). Email queda
-inactivo hasta cargar `RESEND_API_KEY` + `EMAIL_FROM` con dominio verificado — mientras
-tanto la cola lo marca inactivo y reintenta. WhatsApp: adaptador inactivo (Fase 3).
+| Canal de WhatsApp real vía **Evolution API** (`lib/notificaciones/whatsapp.ts`, `lib/telefono.ts` + test, `docs/EVOLUTION-API.md`) | — | `42448bd` |
+
+**Estado de los canales:**
+- **push** — funciona (VAPID ya en `.env.local`).
+- **email** — inactivo hasta `RESEND_API_KEY` + `EMAIL_FROM` con dominio verificado.
+- **whatsapp** — Evolution API self-hosted. Inactivo hasta `EVOLUTION_API_URL` +
+  `EVOLUTION_API_KEY` + `EVOLUTION_INSTANCE`, y que la instancia esté vinculada a un
+  teléfono (QR). Ver `docs/EVOLUTION-API.md`. Encola solo para personas con
+  `personas.telefono`.
+
+Mientras un canal está inactivo, la cola lo marca así y reintenta; nada se pierde.
 
 **Falta de la Fase 2 / Fase 3:**
 
@@ -251,7 +259,8 @@ tanto la cola lo marca inactivo y reintenta. WhatsApp: adaptador inactivo (Fase 
   crítico.
 - **Recuperación de clave por email autogestionada** (Fase 3). Hoy: el admin genera un
   código `reset` desde `/admin/empleados` y el empleado lo usa en `/activar`.
-- **WhatsApp** (Fase 3): cuenta Meta Business + `WHATSAPP_*` + completar el adaptador.
+- **WhatsApp** — el adaptador (Evolution API) está listo; falta levantar Evolution API,
+  vincular un teléfono y cargar las 3 variables. Riesgo de ban si se abusa (ver el doc).
 - Cron horario en `vercel.json`: en plan **Hobby** Vercel puede limitarlo a 1/día. El
   endpoint es invocable a mano (`/admin/notificaciones` → «Procesar cola ahora»).
 - El label «Corregido» usa `version > 1`. Detección exacta («la v1 se conformó») necesita
