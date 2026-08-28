@@ -1,7 +1,7 @@
 # Conforme — Estado del proyecto y cómo continuar
 
 > **Documento de traspaso.** Si estás retomando este proyecto en una conversación nueva, leé
-> esto primero y después el spec. Última actualización: 2026-08-27, commit `8e6c83b`.
+> esto primero y después el spec. Última actualización: 2026-08-28, commit `c552815`.
 
 ---
 
@@ -42,11 +42,14 @@ RS_202604_1QA_680_201_20-27103275-8.pdf
 | | |
 |---|---|
 | Rama | `fase1a-admin-ingesta` (creada desde `main` en `4e4a815`) |
-| HEAD | `8e6c83b` |
-| Commits en la rama | 22 |
-| Tests | **78 pasando**, 14 archivos |
+| HEAD | `c552815` |
+| Commits en la rama | 25 |
+| Tests | **78 unitarios** (14 archivos) + **3 E2E** de ingreso, todos verdes |
 | TypeScript | `npx tsc --noEmit` limpio, modo estricto |
+| Build | `npm run build` verde |
 | Sin subir | La rama **no** se pusheó a GitHub todavía |
+| Migraciones | **0001–0005 aplicadas** en `twejfeghrujsqzzuzvtf` y verificadas |
+| Tipos | `src/lib/supabase/tipos.ts` generado del esquema vivo |
 
 ### Lo que está hecho y revisado
 
@@ -68,14 +71,20 @@ RS_202604_1QA_680_201_20-27103275-8.pdf
 | `permisos.ts` | Matriz de roles `admin` / `operador` / `consulta` |
 | `entorno.ts` | Validación Zod de variables de entorno |
 
-**Base de datos** (`supabase/migrations/`) — los cinco archivos están escritos y revisados,
-pero **NUNCA SE EJECUTARON**:
+**Base de datos** (`supabase/migrations/`) — los cinco archivos **ya se aplicaron y
+verificaron** en `twejfeghrujsqzzuzvtf` (ver §3):
 
 - `0001_esquema_base.sql` — empresas, personas, legajos, admin_usuarios, codigos_activacion
 - `0002_liquidaciones.sql` — liquidaciones, recibos, conformidades (inmutables), observaciones
 - `0003_operacion.sql` — notificaciones, push_subscriptions, eventos_auditoria, importaciones
 - `0004_storage.sql` — bucket privado `recibos`
 - `0005_rls.sql` — funciones auxiliares y 21 políticas RLS
+
+**Clientes de Supabase** (`src/lib/supabase/`) — `tipos.ts` generado del esquema,
+`cliente-navegador.ts` / `cliente-servidor.ts` / `cliente-servicio.ts`.
+
+**Autenticación admin** — `src/lib/sesion.ts` (`obtenerAdmin` / `exigirAdmin`),
+`src/proxy.ts`, `src/acciones/sesion.ts`, pantalla `/ingresar`, layout e inicio de `/admin`.
 
 **Verificación contra datos reales:** el parser reconoce los 28 PDFs de
 `D:\APP\RECIBOS\Ejemplo Delta 6` sin ignorar ninguno.
@@ -86,65 +95,81 @@ npx tsx scripts/verificar-carpeta-ejemplo.ts "D:/APP/RECIBOS/Ejemplo Delta 6"
 
 ---
 
-## 3. EL BLOQUEO — leer antes de intentar continuar
+## 3. El bloqueo de Supabase — RESUELTO (2026-08-28)
 
-**El conector MCP de Supabase no tiene permiso sobre el proyecto `twejfeghrujsqzzuzvtf`.**
-Está autenticado con la cuenta `tango.puntohogar@gmail.com` (organización
-`qfitoytticndeccbeutq`), que no es dueña de ese proyecto.
+**Cómo se destrabó:** el usuario generó un **Personal Access Token** de Supabase
+(`Account → Access Tokens`) de una cuenta con acceso a la organización
+`uthumtopjpmokeguoiew` (nombre «infosystuc's Org»), que **sí** es dueña de
+`twejfeghrujsqzzuzvtf`. Con `SUPABASE_ACCESS_TOKEN` seteado:
 
-Consecuencia: **las migraciones nunca se aplicaron y no existen los tipos generados**
-(`src/lib/supabase/tipos.ts`). Todo lo que falta depende de eso.
+- La CLI (`npx supabase …`) y la **Management API**
+  (`POST https://api.supabase.com/v1/projects/twejfeghrujsqzzuzvtf/database/query`)
+  quedan operativas para SQL y generación de tipos.
+- El **conector MCP de Supabase sigue sin conectar** en las sesiones de Claude Code — no
+  se usó. Si se necesita, hay que reconectarlo en claude.ai con una cuenta miembro de esa
+  organización y reiniciar la sesión.
 
-### Cómo destrabar
+El token es del usuario y es revocable; no está en el repo. Para reusarlo hay que pedírselo
+de nuevo o que autorice el conector.
 
-**Opción A — autorizar el conector** con la cuenta dueña de `twejfeghrujsqzzuzvtf`.
-Es la más cómoda: permite aplicar migraciones, generar tipos y consultar el esquema.
+### Lo que se aplicó y verificó
 
-**Opción B — manual**, sin depender del conector:
+- Migraciones **0001–0005** corridas en orden vía Management API. Registradas a mano en
+  `supabase_migrations.schema_migrations` (versiones `0001`…`0005`) para que un futuro
+  `supabase db push` no las reejecute.
+- 13 tablas con RLS activa. 6 funciones `SECURITY DEFINER` estables con `search_path=public`.
+  Bucket `recibos` privado (10 MB, solo `application/pdf`). Triggers de inmutabilidad
+  (`conformidades_inmutables`, `auditoria_inmutable`) presentes.
+- **Recursión de RLS: no ocurre.** `set local role authenticated` + `request.jwt.claims`
+  y `select id from recibos` / `liquidaciones` devuelven vacío sin
+  «infinite recursion detected in policy». Las dos funciones puente cumplen su función.
+- Advisors: solo los hallazgos ya listados en el §5 como diferidos
+  (`function_search_path_mutable` en `tocar_updated_at` e `impedir_modificacion`,
+  `*_security_definer_function_executable` sin `revoke execute`, `auth_rls_initplan`,
+  `multiple_permissive_policies`). Ninguno bloqueante.
 
-1. Panel de Supabase → SQL Editor → pegar y ejecutar **en orden** los cinco archivos de
-   `supabase/migrations/`.
-2. Generar los tipos:
-   ```bash
-   npx supabase login
-   npx supabase gen types typescript --project-id twejfeghrujsqzzuzvtf > src/lib/supabase/tipos.ts
-   ```
-3. Copiar `.env.local.example` a `.env.local` y completar las tres claves desde
-   Settings → API. **Las claves nunca se pegan en el chat ni se commitean.**
+### Claves y entorno
 
-### Al aplicar por primera vez, verificar esto
+`.env.local` está creado (gitignored) con `NEXT_PUBLIC_SUPABASE_URL`,
+`NEXT_PUBLIC_SUPABASE_ANON_KEY` (legacy JWT), `SUPABASE_SERVICE_ROLE_KEY` (legacy JWT),
+`EMPLEADO_EMAIL_DOMAIN` y las credenciales E2E (`ADMIN_EMAIL_PRUEBA` / `ADMIN_CLAVE_PRUEBA`).
+Se usan las claves **legacy** (`eyJ…`) porque el plan y `entorno.ts` esperan esos nombres;
+el proyecto también tiene claves nuevas `sb_publishable_` / `sb_secret_` sin usar.
 
-El SQL está revisado por dos pasadas pero nunca se ejecutó. Los puntos que solo se ven al
-correrlo:
+### Primer administrador
 
-| Qué | Comando |
+Creado en `twejfeghrujsqzzuzvtf`:
+
+| | |
 |---|---|
-| Las 13 tablas existen | `select table_name from information_schema.tables where table_schema='public' order by 1;` |
-| RLS activa en las 13 | `select relname, relrowsecurity from pg_class where relnamespace='public'::regnamespace and relkind='r' order by 1;` |
-| **La recursión de RLS está rota** (solo se ve en ejecución) | Con un JWT de empleado: `select id from recibos;` — no debe dar «infinite recursion detected in policy» |
-| Las 6 funciones son SECURITY DEFINER | `select proname, prosecdef, provolatile, proconfig from pg_proc where pronamespace='public'::regnamespace and proname in ('es_admin','puede_operar','es_admin_pleno','persona_actual','liquidacion_publicada','persona_tiene_recibo_en');` |
-| El bucket es privado | `select id, public, file_size_limit from storage.buckets where id='recibos';` |
-| Inmutabilidad de conformidades | El bloque `do $$ … $$` del Step 3 de la Tarea 7 del plan |
-| `0004_storage.sql` puede escribir en `storage.buckets` | Si da `permission denied`, crear el bucket desde el panel con `public = false` |
+| auth user id | `56aa2962-d4c0-47d9-81ae-5506415d63aa` |
+| email | `taroriva5199@gmail.com` |
+| nombre / rol | `Administrador` / `admin` |
+| contraseña | está en `.env.local` como `ADMIN_CLAVE_PRUEBA` — **el usuario debería cambiarla** |
 
-Después, correr el test de aislamiento:
+`supabase/semillas/primer-admin.sql` quedó como plantilla genérica para futuros despliegues.
+
+### Test de integración (RLS) — todavía sin correr
 
 ```bash
 npm install -D dotenv-cli
 npx dotenv -e .env.local -- npm run test:integracion
 ```
 
+Ojo: corre contra el **mismo** proyecto que la app (no hay base separada). Ver trampa #4.
+
 ---
 
 ## 4. Qué falta
 
-Del plan de 18 tareas, están completas la 1 a la 9. De las tareas 10 a 16 se extrajeron y
-completaron **solo los módulos de lógica pura** (los Steps 1 a 4 de cada una). Falta:
+Del plan de 18 tareas, están completas **la 1 a la 11**. De las tareas 12 a 16 se
+extrajeron y completaron **solo los módulos de lógica pura** (los Steps 1 a 4 de cada una).
+Falta:
 
 | Tarea | Qué falta | Depende de |
 |---|---|---|
-| 10 | Steps 5-8: los tres clientes de Supabase y `src/lib/supabase/tipos.ts` | Tipos generados |
-| 11 | Steps 5-12: `sesion.ts`, `middleware.ts`, pantalla de ingreso, layout de `/admin`, semilla del primer admin, E2E | Tarea 10 |
+| ~~10~~ | ✅ Hecha. `tipos.ts` + `cliente-navegador/servidor/servicio.ts` (`c63bda4`) | — |
+| ~~11~~ | ✅ Hecha. `sesion.ts`, `proxy.ts` (ver desvío abajo), ingreso, layout `/admin`, semilla, E2E verde (`4cb0a24`, `c552815`) | — |
 | 12 | Steps 5-11: Server Actions de empresas, `auditoria.ts`, pantallas, gestión de usuarios administradores | Tarea 11 |
 | 13 | Steps 5-8: Server Action `importarPadron` y pantalla de importación | Tarea 11 |
 | 14 | Steps 5-9: Server Action `generarCodigoActivacion`, listado de empleados, ABM manual | Tarea 11 |
@@ -207,8 +232,24 @@ esto, va a re-introducir los errores.
     `user_agent`, `storage_path`. Son nombres del protocolo Web Push y de la API de Storage.
     La regla de "todo en español" aplica al dominio, no a protocolos ajenos.
 
-11. **Pendiente conocido (C5):** `src/app/page.tsx` sigue siendo la página de ejemplo de
-    `create-next-app`. La Tarea 11 debe reemplazarla por una redirección a `/admin`.
+11. ~~**Pendiente conocido (C5):** `src/app/page.tsx` era la página de ejemplo de
+    `create-next-app`.~~ Resuelto en la Tarea 11: `page.tsx` ahora hace
+    `redirect('/admin')` y el layout raíz quedó en castellano (`lang="es"`, metadata
+    «Conforme»).
+
+12. **Desvío de la Tarea 11: `middleware` → `proxy`.** Next.js 16 deprecó el archivo
+    `middleware` y lo renombró a `proxy` (misma función y comportamiento; corre en runtime
+    Node por defecto). El plan pedía `src/middleware.ts`; se creó `src/proxy.ts` con
+    `export async function proxy`. Si se regenera el plan, no volver a `middleware.ts`.
+
+13. **E2E: margen de 20 s en la aserción de `/admin`.** La primera visita compila la ruta
+    en el dev server y Turbopack en frío tarda ~5 s, más que el timeout de 5 s de Playwright.
+    No es un bug de la app.
+
+14. **`sesion.ts` usa `getUser()`**, no `getClaims()`. La doc actual de Supabase ya
+    recomienda `getClaims()` para proteger páginas, pero `getUser()` (que valida contra el
+    servidor de Auth) es igual de seguro y es lo que pide el plan. Cambiar a `getClaims()`
+    es una optimización opcional, no una corrección.
 
 ### Hallazgos menores diferidos
 
@@ -257,7 +298,7 @@ Para triaje en la revisión final, ninguno bloqueante:
 | Servicio | URL | Estado verificado |
 |---|---|---|
 | GitHub | https://github.com/infosystuc-sys/recibos | Accesible; `origin` configurado; **vacío**, nada pusheado |
-| Supabase | https://supabase.com/dashboard/project/twejfeghrujsqzzuzvtf | **Sin permiso** desde el conector MCP |
+| Supabase | https://supabase.com/dashboard/project/twejfeghrujsqzzuzvtf | **Operativo** vía Personal Access Token (CLI + Management API). Org `uthumtopjpmokeguoiew`. Conector MCP: sigue sin conectar. |
 | Vercel | https://vercel.com/infosystuc-4207s-projects/recibos | Equipo correcto (`team_Pgq151Al9nDgNFPO8prQAb78`, plan Hobby); el proyecto **todavía no existe** |
 
 La CLI de Vercel no está instalada. `gh` tampoco.
@@ -278,17 +319,30 @@ revisión queda limpia.
   misma carpeta: `extraer-brief.sh <plan> <numero> <destino>`. Es necesario porque el plan
   está en español y el script que trae la skill busca encabezados en inglés (`## Task N`).
 
-**El próximo paso concreto**, una vez destrabado Supabase, es la **Tarea 10, Steps 5 a 8**:
-generar `src/lib/supabase/tipos.ts` y crear los tres clientes
-(`cliente-navegador.ts`, `cliente-servidor.ts`, `cliente-servicio.ts`). A partir de ahí, la
-Tarea 11 desbloquea todo el resto.
+**El próximo paso concreto** es la **Tarea 12** (ABM de empresas y de usuarios
+administradores). Ya está la lógica pura (`src/lib/validaciones/empresa.ts` y su test);
+faltan los Steps 5-11: `src/lib/auditoria.ts`, `src/acciones/empresas.ts`,
+`src/acciones/administradores.ts` y las pantallas bajo `src/app/admin/empresas` y
+`src/app/admin/usuarios`.
+
+Notas para retomar:
+
+- Supabase se opera con `SUPABASE_ACCESS_TOKEN` (pedírselo al usuario o que autorice el
+  conector MCP). Con eso: `npm run tipos` regenera tipos; para SQL suelto, la Management API
+  `POST /v1/projects/twejfeghrujsqzzuzvtf/database/query`.
+- Antes de tocar SQL nuevo, seguir el flujo imperativo de la skill de Supabase: iterar con
+  `execute_sql` / Management API y recién al final generar el archivo de migración
+  (`0006_publicar.sql` es de la Tarea 17).
+- El `.superpowers/` local se perdió entre sesiones; este documento es la única fuente de
+  avance. Si se quiere volver a `subagent-driven-development`, hay que regenerar los briefs.
 
 ## 9. Comandos
 
 ```bash
 npm test                  # tests unitarios (78)
-npm run test:integracion  # RLS — necesita .env.local y el esquema aplicado
-npm run test:e2e          # Playwright — necesita la Tarea 11
+npm run test:integracion  # RLS — necesita .env.local y el esquema aplicado (todavía sin correr)
+npm run test:e2e          # Playwright — 3 casos de ingreso, verdes. Cargar antes las vars:
+                          #   set -a; . ./.env.local; set +a   (bash)
 npm run build             # build de producción
 npm run dev               # servidor de desarrollo
 npm run tipos             # regenerar tipos desde el esquema de Supabase
