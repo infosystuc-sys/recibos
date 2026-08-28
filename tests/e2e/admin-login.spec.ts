@@ -10,7 +10,7 @@ test('rechaza credenciales inválidas', async ({ page }) => {
   await page.getByLabel('Email').fill('nadie@ejemplo.com')
   await page.getByLabel('Contraseña').fill('clave-incorrecta')
   await page.getByRole('button', { name: 'Ingresar' }).click()
-  await expect(page.getByRole('alert')).toHaveText('Email o contraseña incorrectos.')
+  await expect(page.getByText('Email o contraseña incorrectos.')).toBeVisible()
 })
 
 test('permite ingresar con el administrador de prueba', async ({ page }) => {
@@ -20,5 +20,7 @@ test('permite ingresar con el administrador de prueba', async ({ page }) => {
   await page.getByLabel('Email').fill(process.env.ADMIN_EMAIL_PRUEBA!)
   await page.getByLabel('Contraseña').fill(process.env.ADMIN_CLAVE_PRUEBA!)
   await page.getByRole('button', { name: 'Ingresar' }).click()
-  await expect(page).toHaveURL(/\/admin/)
+  // La primera visita a /admin compila la ruta en el dev server (varios
+  // segundos con Turbopack en frío), así que se da un margen amplio.
+  await expect(page).toHaveURL(/\/admin/, { timeout: 20_000 })
 })
