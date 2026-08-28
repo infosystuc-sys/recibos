@@ -46,15 +46,17 @@ export async function importarPadron(
   const previosPorNumero = new Map((legajosPrevios ?? []).map((l) => [l.numero, l]))
 
   for (const fila of filas) {
-    // 1) La persona se identifica por CUIL en todo el sistema.
+    // 1) La persona se identifica por CUIL en todo el sistema. Solo se pisan
+    //    email/teléfono si el archivo trae un valor: un CSV recortado o sin
+    //    esas columnas no debe borrar los contactos ya cargados.
     const { data: persona } = await supabase
       .from('personas')
       .upsert(
         {
           cuil: fila.cuil,
           apellido_nombre: fila.apellidoNombre,
-          email: fila.email,
-          telefono: fila.telefono,
+          ...(fila.email ? { email: fila.email } : {}),
+          ...(fila.telefono ? { telefono: fila.telefono } : {}),
         },
         { onConflict: 'cuil' },
       )
