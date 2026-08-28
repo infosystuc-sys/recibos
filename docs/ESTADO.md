@@ -1,7 +1,8 @@
 # Conforme — Estado del proyecto y cómo continuar
 
 > **Documento de traspaso.** Si estás retomando este proyecto en una conversación nueva, leé
-> esto primero y después el spec. Última actualización: 2026-08-28, commit `5b18380`.
+> esto primero y después el spec. Última actualización: 2026-08-28, commit `abd55e3`.
+> **Fase 1A completa (falta solo Vercel). Fase 1B en curso — ver §4.**
 
 ---
 
@@ -42,10 +43,10 @@ RS_202604_1QA_680_201_20-27103275-8.pdf
 | | |
 |---|---|
 | Rama | `fase1a-admin-ingesta` (creada desde `main` en `4e4a815`) |
-| Rama principal | `main` — la de trabajo `fase1a-admin-ingesta` se mergeó por fast-forward |
-| HEAD | `5b18380` |
-| Commits | 41 (más el `4e4a815` de base) |
-| Tests | **78 unitarios** + **10 de integración** (6 RLS + 4 publicación) + **3 E2E** de ingreso, todos verdes |
+| Rama principal | `main` — la de trabajo `fase1a-admin-ingesta` se mergeó por fast-forward. Fase 1B se commitea directo en `main`. |
+| HEAD | `abd55e3` |
+| Commits | 47 (más el `4e4a815` de base). Pusheados hasta `1bcfd56`; los de Fase 1B (`8eb669e`…`abd55e3`) **sin pushear**. |
+| Tests | **78 unitarios** + **13 de integración** (6 RLS + 4 publicación + 3 conformidad) + **3 E2E** de ingreso, todos verdes |
 | TypeScript | `npx tsc --noEmit` limpio, modo estricto |
 | Build | `npm run build` verde |
 | GitHub | **`main` pusheado** a `infosystuc-sys/recibos` |
@@ -205,11 +206,31 @@ Del plan de 18 tareas, están completas **la 1 a la 17**. Falta solo la **18** (
 | ~~15~~ | ✅ Hecha. `carpeta/handle-persistido.ts` (IndexedDB), `componentes/selector-carpeta.tsx` (FS Access API + fallback de arrastre), `tipos/file-system-access.d.ts`. Verificada contra la carpeta real (`cc34697`) | — |
 | ~~16~~ | ✅ Hecha. `acciones/subida.ts` (`prepararSubida`), `lib/subida/subir-a-storage.ts` (hash + subida firmada con reintentos). Round-trip de Storage verificado (`9b93be4`) | — |
 | ~~17~~ | ✅ Hecha. `0006_publicar.sql` (aplicada), `acciones/liquidaciones.ts`, pantallas `/admin/liquidaciones/{,ingesta,[id]}`. Flujo completo verificado end-to-end (`328906e`) | — |
-| 18 | Completa: README, push, proyecto en Vercel, variables, verificación de despliegue | Todo lo anterior |
+| 18 | **Solo Vercel.** README y push a `main` hechos. Falta: resolver el proyecto `recibos` que ya existe fuera del team, cargar las 4 variables en los 3 entornos, y verificar (redirección, login, grep de `service_role` = 0). Ver §7. | — |
 
-Después de la Fase 1A queda por planificar la **Fase 1B: el portal del empleado**
-(activación con CUIL y código, listado de recibos, visor PDF, conformidad con auditoría,
-comprobante descargable, tablero de seguimiento de firmas).
+### Fase 1B — portal del empleado (en curso, sin plan formal)
+
+Se empezó a construir directamente contra el spec (`§10`, `§11`). Hecho y verificado
+end-to-end contra Supabase real:
+
+| Parte | Archivos | Commit |
+|---|---|---|
+| Activación (CUIL + código → clave ≥8) y login por CUIL | `acciones/activacion.ts`, `acciones/sesion-empleado.ts`, `lib/sesion-empleado.ts`, `/activar`, `/mi/ingresar`, `proxy.ts` (protege `/mi`) | `8eb669e` |
+| Listado `/mi`, visor con iframe + URL firmada, conformidad con auditoría completa (hora, SHA-256 del PDF exacto, IP, UA, copia del texto legal), descarga gateada, comprobante PDF (`pdf-lib`) | `acciones/recibos-empleado.ts`, `/mi/(privado)/**` | `46dd731` |
+| Tablero de conformidad en `/admin/liquidaciones/[id]` (% conformado, pendientes, export CSV) | `[id]/page.tsx`, `[id]/seguimiento.csv/route.ts` | `ece84b6` |
+| Test de inmutabilidad de conformidades | `tests/integracion/conformidad.test.ts` | `abd55e3` |
+
+`/` pasó a ser una landing («Soy empleado» / «Administración»).
+
+**Falta de la Fase 1B / Fase 2:**
+
+- **Rate limiting** en login y activación (spec §260). No implementado.
+- «Recordar a los pendientes» y **PDF combinado de constancias** (necesitan el canal de
+  notificaciones → Fase 2).
+- **PWA instalable** + push (Fase 2).
+- **Observaciones** del empleado (spec las pone en Fase 2).
+- El label «Corregido — requiere nueva conformidad» es aproximado (usa `version > 1`); no
+  distingue si la v1 llegó a conformarse.
 
 ---
 
@@ -324,8 +345,18 @@ Para triaje en la revisión final, ninguno bloqueante:
   ese `update` de la función es un no-op. No lo saques: cubre inserciones hechas por fuera
   de `registrarRecibos`.
 - La política `empleado_lee_sus_recibos` **no filtra `estado`**: un empleado ve también las
-  versiones `reemplazado` de sus recibos. El portal de la Fase 1B debe filtrar
-  `estado = 'vigente'` en la consulta o endurecer la política.
+  versiones `reemplazado` de sus recibos. La Fase 1B lo resuelve **filtrando `estado` en las
+  consultas** (`/mi`, viewer, conformar) — la política sigue permisiva a propósito para que
+  el histórico de conformidades que apunta a una v1 reemplazada siga resolviendo.
+- **Tests que crean conformidades no se pueden limpiar** con la clave de servicio (el trigger
+  de inmutabilidad rechaza el DELETE). `conformidad.test.ts` usa un fixture permanente de
+  ids fijos. Para borrar residuo de test a mano:
+  `alter table conformidades disable trigger conformidades_inmutables; delete …; alter table conformidades enable trigger conformidades_inmutables;`
+  vía Management API (corre como `postgres`).
+- `activarCuenta` e `ingresarEmpleado` devuelven `{ error, cuil, codigo }` en el estado
+  porque **React 19 resetea el form tras cada submit** (incluso fallido); sin eso, el
+  empleado pierde lo tipeado al equivocarse una vez. Los forms de admin tienen el mismo
+  patrón latente pero sus flujos no lo exponen.
 
 ---
 
@@ -390,6 +421,10 @@ revisión queda limpia.
 3. **Verificar el deploy:** `/admin` redirige a `/ingresar`; login con
    `taroriva5199@gmail.com` funciona; el listado de empresas carga; y en el JS servido
    **no aparece `service_role`** (0 coincidencias — ya verificado sobre el build local).
+
+**Después del deploy**, la Fase 1B sigue con: rate limiting en login/activación, y de ahí a
+la Fase 2 (notificaciones con Resend, PWA + push, observaciones del empleado, recordatorios
+por Vercel Cron). El hardening diferido de la Fase 1A (§5) es opcional y se puede intercalar.
 
 Notas para retomar:
 
