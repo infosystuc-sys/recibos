@@ -117,13 +117,25 @@ export async function encolarRecordatorios(servicio: Servicio, dias: 3 | 7) {
   }
 }
 
+/**
+ * Recordatorio a demanda desde el panel: encola para todos los pendientes de
+ * la liquidación, sin mirar cuándo se envió el último. Devuelve cuántos entraron.
+ */
+export async function encolarRecordatorioManual(
+  servicio: Servicio,
+  liquidacionId: string,
+): Promise<number> {
+  const objetivos = await personasDeLiquidacion(servicio, liquidacionId, true)
+  return encolar(servicio, liquidacionId, objetivos, 'recordatorio')
+}
+
 async function encolar(
   servicio: Servicio,
   liquidacionId: string,
   objetivos: PersonaObjetivo[],
   tipo: 'publicacion' | 'recordatorio',
-) {
-  if (objetivos.length === 0) return
+): Promise<number> {
+  if (objetivos.length === 0) return 0
 
   // No duplicar avisos vivos del mismo tipo para la misma (persona, liq, canal).
   const { data: vivos } = await servicio
@@ -155,6 +167,7 @@ async function encolar(
   }
 
   if (filas.length > 0) await servicio.from('notificaciones').insert(filas)
+  return filas.length
 }
 
 // ── Procesamiento ─────────────────────────────────────────────────────

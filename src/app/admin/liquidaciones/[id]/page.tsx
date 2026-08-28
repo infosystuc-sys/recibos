@@ -7,6 +7,7 @@ import { exigirAdmin } from '@/lib/sesion'
 import { clienteServidor } from '@/lib/supabase/cliente-servidor'
 import { ETIQUETA_TIPO } from '@/lib/tango/parse-nombre-recibo'
 import PublicarBoton from './publicar-boton'
+import RecordarPendientes from './recordar'
 
 interface Params {
   params: Promise<{ id: string }>
@@ -81,15 +82,24 @@ export default async function PaginaLiquidacion({ params, searchParams }: Params
 
       {liquidacion.estado === 'publicada' && vigentes.length > 0 && (
         <div className="flex flex-col gap-3 rounded-lg border p-4">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-wrap items-center justify-between gap-2">
             <h2 className="text-sm font-semibold">Seguimiento de conformidad</h2>
-            <Link
-              href={`/admin/liquidaciones/${id}/seguimiento.csv`}
-              prefetch={false}
-              className="text-sm underline"
-            >
-              Exportar CSV
-            </Link>
+            <div className="flex gap-3 text-sm">
+              <Link
+                href={`/admin/liquidaciones/${id}/seguimiento.csv`}
+                prefetch={false}
+                className="underline"
+              >
+                Exportar CSV
+              </Link>
+              <Link
+                href={`/admin/liquidaciones/${id}/constancias.pdf`}
+                prefetch={false}
+                className="underline"
+              >
+                Constancias (PDF)
+              </Link>
+            </div>
           </div>
 
           <div>
@@ -101,7 +111,7 @@ export default async function PaginaLiquidacion({ params, searchParams }: Params
             </p>
           </div>
 
-          <div className="flex gap-3 text-sm">
+          <div className="flex flex-wrap items-center gap-3 text-sm">
             <Link
               href={`/admin/liquidaciones/${id}`}
               className={!soloPendientes ? 'font-semibold' : 'underline'}
@@ -115,6 +125,10 @@ export default async function PaginaLiquidacion({ params, searchParams }: Params
               Solo pendientes ({vigentes.length - conformados.length})
             </Link>
           </div>
+
+          {puede(admin.rol, 'operar') && conformados.length < vigentes.length && (
+            <RecordarPendientes liquidacionId={id} />
+          )}
 
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
