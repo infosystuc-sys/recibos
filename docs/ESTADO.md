@@ -1,8 +1,9 @@
 # Conforme — Estado del proyecto y cómo continuar
 
 > **Documento de traspaso.** Si estás retomando este proyecto en una conversación nueva, leé
-> esto primero y después el spec. Última actualización: 2026-08-28, commit `1d579da`.
-> **Fase 1A completa (falta solo Vercel). Fase 1B completa. Fase 2 en curso — ver §4.**
+> esto primero y después el spec. Última actualización: 2026-08-28, commit `ccbcea7`.
+> **Fase 1A + 1B completas. Fase 2 casi completa (falta Resend). Único bloqueo real: el
+> proyecto de Vercel — ver §7. Todo lo demás corre en local.**
 
 ---
 
@@ -44,10 +45,11 @@ RS_202604_1QA_680_201_20-27103275-8.pdf
 |---|---|
 | Rama | `fase1a-admin-ingesta` (creada desde `main` en `4e4a815`) |
 | Rama principal | `main`. Fase 1B y Fase 2 se commitean directo en `main`. |
-| HEAD | `1d579da` |
-| Commits | 53 (más el `4e4a815` de base). **Pusheados solo hasta `1bcfd56`**; todo lo de Fase 1B/2 (`8eb669e`…`1d579da`) está sin pushear (GitHub pidió credenciales). |
-| Tests | **78 unitarios** + **13 de integración** + **3 E2E** de ingreso, todos verdes. Fase 1B/2 se verificaron con scripts E2E ad-hoc (ya borrados). |
-| Migraciones | **0001–0007 aplicadas.** 0007 agrega `intentos` + `registrar_intento`. |
+| HEAD | `ccbcea7` |
+| Commits | ~62 (más el `4e4a815` de base). **Pusheados hasta `25383a7`**; lo posterior (hardening, PDF de constancias, fixes) puede estar sin pushear — hacer `git push origin main`. |
+| Tests | **78 unitarios** + **13 de integración** + **3 E2E** de ingreso, todos verdes. Build y `tsc` limpios. Fase 1B/2 se verificaron con scripts E2E ad-hoc (ya borrados). |
+| Migraciones | **0001–0009 aplicadas.** 0007 rate limiting, 0008 hardening de RLS, 0009 índices. |
+| Advisors | Solo quedan: `rls_enabled_no_policy` en `codigos_activacion`/`intentos` (deliberado), `authenticated_security_definer_function_executable` x6 (funciones de RLS, inevitable, cada una chequea `auth.uid()` adentro), y `auth_leaked_password_protection` (solo Pro). |
 | TypeScript | `npx tsc --noEmit` limpio, modo estricto |
 | Build | `npm run build` verde |
 | GitHub | **`main` pusheado** a `infosystuc-sys/recibos` |
@@ -85,6 +87,9 @@ verificaron** en `twejfeghrujsqzzuzvtf` (ver §3):
 - `0005_rls.sql` — funciones auxiliares y 21 políticas RLS
 - `0006_publicar.sql` — función `publicar_liquidacion(uuid, uuid)`, transaccional
 - `0007_intentos.sql` — tabla `intentos` + `registrar_intento(text, interval)` (rate limiting)
+- `0008_hardening.sql` — `search_path` fijo, TRUNCATE en triggers de inmutabilidad,
+  `revoke execute` a anon, políticas del empleado con `(select …)` y `recibos` filtra `vigente`
+- `0009_indices.sql` — índices sobre FK que se filtran; `admin_lee_su_ficha` con `(select …)`
 
 **Clientes de Supabase** (`src/lib/supabase/`) — `tipos.ts` generado del esquema,
 `cliente-navegador.ts` / `cliente-servidor.ts` / `cliente-servicio.ts`.
@@ -228,27 +233,29 @@ Todo verificado end-to-end contra Supabase real con scripts ad-hoc:
 
 | Parte | Archivos | Commit |
 |---|---|---|
-| Cola de notificaciones: interfaz `CanalNotificacion` + adaptadores email (Resend), push (web-push/VAPID), whatsapp (inactivo). `encolarPublicacion` (desde `publicarLiquidacion`), `encolarRecordatorios` (3 y 7 días), `procesarCola` (backoff 1/2/4/8/16 min, tope 5). Cron `/api/cron/notificaciones` (Bearer `CRON_SECRET`), `vercel.json` horario. PWA: `manifest.ts`, `public/sw.js`, iconos, `/mi/avisos.tsx` | `src/lib/notificaciones/**`, `src/acciones/push.ts` | `1f49e7a` |
-| Rate limiting (`0007_intentos.sql` + `lib/limite-intentos.ts`) en `activarCuenta` (5/CUIL, 20/IP · 15 min) e `ingresarEmpleado` (10/CUIL, 30/IP). Panel `/admin/notificaciones` (estado de canales, stats, procesar a demanda). | `lib/limite-intentos.ts`, `/admin/notificaciones/**` | `1d579da` |
+| Cola de notificaciones: interfaz `CanalNotificacion` + adaptadores email (Resend), push (web-push/VAPID), whatsapp (inactivo). `encolarPublicacion` (desde `publicarLiquidacion`), `encolarRecordatorios` (3 y 7 días), `procesarCola` (backoff 1/2/4/8/16 min, tope 5, poda de subs muertas). Cron `/api/cron/notificaciones` (Bearer `CRON_SECRET`), `vercel.json` horario. PWA: `manifest.ts`, `public/sw.js`, iconos, `/mi/avisos.tsx` | `src/lib/notificaciones/**`, `src/acciones/push.ts` | `1f49e7a` |
+| Rate limiting (`0007` + `lib/limite-intentos.ts`) en `activarCuenta` (5/CUIL, 20/IP · 15 min) e `ingresarEmpleado` (10/CUIL, 30/IP). Panel `/admin/notificaciones` (estado de canales, stats, procesar a demanda). | `lib/limite-intentos.ts`, `/admin/notificaciones/**` | `1d579da` |
+| PDF combinado de constancias (`/admin/liquidaciones/[id]/constancias`), «recordar a los pendientes» en el tablero, refactor del comprobante a `lib/comprobante-pdf.ts` | — | `be119e4`, `7d7bcd8` |
+| Hardening de RLS (`0008`, `0009`), nav responsive, `importarPadron` no pisa email/teléfono con vacío | — | `2218a3c`, `ccbcea7` |
 
-**Estado de los canales:** email y push funcionan cuando se cargan las variables
-(`RESEND_API_KEY` + `EMAIL_FROM` con dominio verificado; `VAPID_*`). Hasta entonces la cola
-los marca inactivos y reintenta. `.env.local` ya tiene VAPID + `CRON_SECRET` + `APP_URL`
-generados; falta solo Resend. WhatsApp: adaptador inactivo (Fase 3).
+**Estado de los canales:** push funciona (VAPID ya generado en `.env.local`). Email queda
+inactivo hasta cargar `RESEND_API_KEY` + `EMAIL_FROM` con dominio verificado — mientras
+tanto la cola lo marca inactivo y reintenta. WhatsApp: adaptador inactivo (Fase 3).
 
 **Falta de la Fase 2 / Fase 3:**
 
 - **Resend**: cuenta + dominio verificado (SPF/DKIM) + `RESEND_API_KEY` / `EMAIL_FROM`.
-- **Serwist / cacheo offline** de la PWA (el SW actual es solo push).
-- **PDF combinado de constancias** (export del tablero; hoy solo CSV).
-- **Recuperación de clave por email autogestionada** (Fase 3; hoy el circuito es: el admin
-  genera un código nuevo).
+- **Serwist / cacheo offline** de la PWA. **No se hizo a propósito**: `@serwist/next` no
+  tiene compat confirmada con Next 16 y el riesgo de romper el build no valía el beneficio
+  (la app se usa esporádicamente). El SW actual (`public/sw.js`) cubre push, que es lo
+  crítico.
+- **Recuperación de clave por email autogestionada** (Fase 3). Hoy: el admin genera un
+  código `reset` desde `/admin/empleados` y el empleado lo usa en `/activar`.
 - **WhatsApp** (Fase 3): cuenta Meta Business + `WHATSAPP_*` + completar el adaptador.
-- Cron horario en `vercel.json`: en plan **Hobby** Vercel puede limitarlo a 1 vez/día. El
+- Cron horario en `vercel.json`: en plan **Hobby** Vercel puede limitarlo a 1/día. El
   endpoint es invocable a mano (`/admin/notificaciones` → «Procesar cola ahora»).
-- El label «Corregido — requiere nueva conformidad» usa `version > 1`; no distingue si la
-  v1 llegó a conformarse.
-- Nav del panel: 6 links, en móvil envuelve feo. Falta un menú responsive.
+- El label «Corregido» usa `version > 1`. Detección exacta («la v1 se conformó») necesita
+  que la conformidad guarde la liquidación, que hoy no hace. Poco valor, se deja.
 
 ---
 
@@ -406,7 +413,7 @@ Para triaje en la revisión final, ninguno bloqueante:
 |---|---|---|
 | GitHub | https://github.com/infosystuc-sys/recibos | **`main` pusheado** (41 commits). `origin` configurado y trackeando. |
 | Supabase | https://supabase.com/dashboard/project/twejfeghrujsqzzuzvtf | **Operativo** vía Personal Access Token (CLI + Management API). Org `uthumtopjpmokeguoiew`. Conector MCP: sigue sin conectar. |
-| Vercel | https://vercel.com/infosystuc-4207s-projects/recibos | Team `team_Pgq151Al9nDgNFPO8prQAb78` (plan Hobby). **`create_git_project` devolvió 409 "recibos already exists"**, pero `list_projects`/`get_project` del team no lo ven → el proyecto existe en otra cuenta (probablemente la personal del usuario autenticado en el conector MCP de Vercel). Hay que resolverlo desde el panel. |
+| Vercel | https://vercel.com/infosystuc-4207s-projects | Team `team_Pgq151Al9nDgNFPO8prQAb78` (plan Hobby). **El conector MCP de Vercel está roto para este team**: `list_projects` y `get_project` devuelven vacío/404 aunque `create_git_project` "crea" proyectos (`recibos` → 409 already exists; `conforme` → creado como `prj_ZHGgX7MpVL21ym1zFQa1s9UuXkyS` pero no verificable ni visible). Además la GitHub App de Vercel no está conectada a `infosystuc-sys`. **Hay que hacerlo todo desde el panel web** y probablemente limpiar los proyectos a medio crear. |
 
 La CLI de Vercel no está instalada. `gh` tampoco.
 
@@ -426,24 +433,24 @@ revisión queda limpia.
   misma carpeta: `extraer-brief.sh <plan> <numero> <destino>`. Es necesario porque el plan
   está en español y el script que trae la skill busca encabezados en inglés (`## Task N`).
 
-**Lo que falta del deploy** (el código está; el push a `main` quedó a medias — GitHub pidió
-credenciales, hay que pushear `1bcfd56..1d579da` a mano):
+**Lo que falta del deploy** (el código está y compila; todo desde el panel de Vercel):
 
-1. **Resolver el proyecto `recibos` en Vercel.** Ya existe uno con ese nombre pero no está
-   en el team `infosystuc-4207's projects`. Desde el panel: o moverlo al team, o borrarlo y
-   reimportarlo, o crear el del team con otro nombre. Debe quedar linkeado a
-   `infosystuc-sys/recibos`, rama de producción `main`.
-2. **Cargar variables** en Production, Preview y Development. Mínimas para que arranque:
+1. **Conectar la GitHub App de Vercel al org `infosystuc-sys`** (Vercel → Settings →
+   Git → GitHub → configurar acceso al repo `recibos`).
+2. **Un solo proyecto en el team** `infosystuc-4207's projects` linkeado a
+   `infosystuc-sys/recibos`, rama de producción `main`. Borrar los que quedaron a medias
+   (`recibos` y/o `conforme` / `prj_ZHGgX7MpVL21ym1zFQa1s9UuXkyS`).
+3. **Cargar variables** en Production, Preview y Development (valores en `.env.local`,
+   menos `APP_URL` que apunta al dominio real):
    `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`,
-   `SUPABASE_SERVICE_ROLE_KEY` (sin `NEXT_PUBLIC_`), `EMPLEADO_EMAIL_DOMAIN`, `APP_URL`
-   (la URL de producción), `CRON_SECRET`, `VAPID_PUBLIC_KEY`,
-   `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`. Todas están en
-   `.env.local` (menos `APP_URL`, que hay que apuntar al dominio real). Para email:
-   `RESEND_API_KEY` + `EMAIL_FROM` cuando el dominio esté verificado en Resend.
-3. **Verificar el deploy:** `/` muestra la landing; `/admin` redirige a `/ingresar`; login
-   con `taroriva5199@gmail.com`; `/mi` redirige a `/mi/ingresar`; y en el JS servido **no
-   aparece `service_role`** (0 coincidencias — verificado sobre el build local).
-4. El cron `/api/cron/notificaciones` corre solo (Vercel Cron); en Hobby puede ser 1/día.
+   `SUPABASE_SERVICE_ROLE_KEY` (sin `NEXT_PUBLIC_`), `EMPLEADO_EMAIL_DOMAIN`, `APP_URL`,
+   `CRON_SECRET`, `VAPID_PUBLIC_KEY`, `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`,
+   `VAPID_SUBJECT`. Email: `RESEND_API_KEY` + `EMAIL_FROM` cuando el dominio esté
+   verificado en Resend.
+4. **Verificar el deploy:** `/` muestra la landing; `/admin` → `/ingresar`; login con
+   `taroriva5199@gmail.com`; `/mi` → `/mi/ingresar`; y en el JS servido **no aparece
+   `service_role`** (verificado sobre el build local).
+5. El cron `/api/cron/notificaciones` corre solo (Vercel Cron); en Hobby puede ser 1/día.
 
 **Después del deploy:** verificar email con Resend, sumar Serwist (cacheo offline de la
 PWA), el PDF combinado de constancias, y el resto de la Fase 3. El hardening diferido de la
