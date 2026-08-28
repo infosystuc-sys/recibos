@@ -1,7 +1,7 @@
 # Conforme — Estado del proyecto y cómo continuar
 
 > **Documento de traspaso.** Si estás retomando este proyecto en una conversación nueva, leé
-> esto primero y después el spec. Última actualización: 2026-08-28, commit `a1a979d`.
+> esto primero y después el spec. Última actualización: 2026-08-28, commit `cc34697`.
 
 ---
 
@@ -42,8 +42,8 @@ RS_202604_1QA_680_201_20-27103275-8.pdf
 | | |
 |---|---|
 | Rama | `fase1a-admin-ingesta` (creada desde `main` en `4e4a815`) |
-| HEAD | `a1a979d` |
-| Commits en la rama | 31 |
+| HEAD | `cc34697` |
+| Commits en la rama | 33 |
 | Tests | **78 unitarios** (14 archivos) + **6 de integración RLS** + **3 E2E** de ingreso, todos verdes |
 | TypeScript | `npx tsc --noEmit` limpio, modo estricto |
 | Build | `npm run build` verde |
@@ -96,6 +96,10 @@ verificaron** en `twejfeghrujsqzzuzvtf` (ver §3):
 **Empleados y códigos** — `src/acciones/codigos.ts` (`generarCodigoActivacion`),
 `guardarEmpleado` en `padron.ts`, listado `/admin/empleados` (filtros + buscador + generar
 código) y ABM manual `/admin/empleados/nuevo`.
+
+**Carpeta local** — `src/lib/carpeta/handle-persistido.ts` (IndexedDB por empresa) y
+`src/componentes/selector-carpeta.tsx` (todavía sin usar: lo consume la pantalla de ingesta
+de la Tarea 17).
 
 **Verificación contra datos reales:** el parser reconoce los 28 PDFs de
 `D:\APP\RECIBOS\Ejemplo Delta 6` sin ignorar ninguno.
@@ -177,9 +181,8 @@ trampa #4); su limpieza es best-effort y acotada a los ids que crea.
 
 ## 4. Qué falta
 
-Del plan de 18 tareas, están completas **la 1 a la 14**. De las tareas 15 y 16 se
-extrajeron y completaron **solo los módulos de lógica pura** (los Steps 1 a 4 de cada una).
-Falta:
+Del plan de 18 tareas, están completas **la 1 a la 15**. De la tarea 16 se extrajeron y
+completaron **solo los módulos de lógica pura** (Steps 1 a 4). Falta:
 
 | Tarea | Qué falta | Depende de |
 |---|---|---|
@@ -188,7 +191,7 @@ Falta:
 | ~~12~~ | ✅ Hecha. `auditoria.ts`, `acciones/empresas.ts`, `acciones/administradores.ts`, pantallas `/admin/empresas` y `/admin/usuarios`, nav por rol. Verificada end-to-end (`f9f1199`) | — |
 | ~~13~~ | ✅ Hecha. `acciones/padron.ts` (`importarPadron`), pantalla `/admin/empleados/importar` con vista previa. Verificada end-to-end (`ce3154d`) | — |
 | ~~14~~ | ✅ Hecha. `acciones/codigos.ts`, `guardarEmpleado`, listado `/admin/empleados` con filtros + generación de códigos, ABM manual `/admin/empleados/nuevo`. Verificada end-to-end (`a1a979d`) | — |
-| 15 | Steps 5-8: `handle-persistido.ts` (IndexedDB) y el componente `selector-carpeta.tsx` | Tarea 11 |
+| ~~15~~ | ✅ Hecha. `carpeta/handle-persistido.ts` (IndexedDB), `componentes/selector-carpeta.tsx` (FS Access API + fallback de arrastre), `tipos/file-system-access.d.ts`. Verificada contra la carpeta real (`cc34697`) | — |
 | 16 | Steps 5-7: Server Action `prepararSubida` y la subida desde la interfaz | Tarea 11 |
 | 17 | Completa: migración `0006_publicar.sql`, `registrarRecibos`, `publicarLiquidacion`, pantalla de ingesta | Tareas 10-16 |
 | 18 | Completa: README, push, proyecto en Vercel, variables, verificación de despliegue | Todo lo anterior |
@@ -350,11 +353,11 @@ revisión queda limpia.
   misma carpeta: `extraer-brief.sh <plan> <numero> <destino>`. Es necesario porque el plan
   está en español y el script que trae la skill busca encabezados en inglés (`## Task N`).
 
-**El próximo paso concreto** es la **Tarea 15** (conexión de carpeta y escaneo). Ya está
-`src/lib/carpeta/escanear.ts` con su test; faltan los Steps 5-8:
-`src/lib/carpeta/handle-persistido.ts` (guardar/recuperar el `FileSystemDirectoryHandle` en
-IndexedDB) y `src/componentes/selector-carpeta.tsx` (File System Access API con fallback de
-arrastrar y soltar — obligatorio, solo Chrome/Edge tienen la API).
+**El próximo paso concreto** es la **Tarea 16** (hash y subida a Storage). Ya están
+`src/lib/hash.ts` y `src/lib/subida/subir-lote.ts` con sus tests; faltan los Steps 5-7:
+`src/acciones/subida.ts` con `pedirUrlsDeSubida(reciboIds)` (Server Action que devuelve URLs
+firmadas de subida) y la integración de la subida desde la interfaz. La subida real la
+arma la pantalla de ingesta de la Tarea 17.
 
 Notas para retomar:
 
