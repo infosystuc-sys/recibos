@@ -1,6 +1,6 @@
 import { canalEmail } from '@/lib/notificaciones/email'
 import { canalPush } from '@/lib/notificaciones/push'
-import { canalWhatsapp } from '@/lib/notificaciones/whatsapp'
+import { canalWhatsapp, estadoInstanciaWhatsapp } from '@/lib/notificaciones/whatsapp'
 import { puede } from '@/lib/permisos'
 import { exigirAdmin } from '@/lib/sesion'
 import { clienteServidor } from '@/lib/supabase/cliente-servidor'
@@ -20,6 +20,8 @@ export default async function PaginaNotificaciones() {
 
   const filas = recientes ?? []
   const cuenta = (p: (n: { estado: string }) => boolean) => filas.filter(p).length
+
+  const estadoWhatsapp = canalWhatsapp.activo() ? await estadoInstanciaWhatsapp() : null
 
   return (
     <section className="flex flex-col gap-6">
@@ -44,6 +46,19 @@ export default async function PaginaNotificaciones() {
                 </div>
                 {!activo && (
                   <p className="mt-1 text-neutral-500">{c.motivoInactivo()}</p>
+                )}
+                {c.nombre === 'whatsapp' && activo && (
+                  <p
+                    className={`mt-1 ${
+                      estadoWhatsapp === 'open'
+                        ? 'text-green-700 dark:text-green-400'
+                        : 'text-amber-700 dark:text-amber-400'
+                    }`}
+                  >
+                    Instancia: {estadoWhatsapp === 'open' ? 'vinculada' : (estadoWhatsapp ?? 'desconocido')}
+                    {estadoWhatsapp !== 'open' &&
+                      ' — escaneá el QR en el manager de Evolution API.'}
+                  </p>
                 )}
               </li>
             )

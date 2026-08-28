@@ -2,6 +2,7 @@ export type Canal = 'email' | 'push' | 'whatsapp'
 
 export interface DatosDestino {
   email: string | null
+  telefono: string | null
   suscripcionesPush: Array<{ id: string; endpoint: string; p256dh: string; auth: string }>
 }
 

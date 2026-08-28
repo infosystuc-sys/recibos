@@ -20,6 +20,12 @@ const esquemaServidor = esquemaPublico.extend({
   VAPID_PUBLIC_KEY: z.string().min(1).optional(),
   VAPID_PRIVATE_KEY: z.string().min(1).optional(),
   VAPID_SUBJECT: z.string().min(1).optional(),
+
+  // WhatsApp vía Evolution API (self-hosted).
+  EVOLUTION_API_URL: z.string().url().optional(),
+  EVOLUTION_API_KEY: z.string().min(1).optional(),
+  EVOLUTION_INSTANCE: z.string().min(1).optional(),
+  WHATSAPP_PAIS: z.string().min(1).optional(),
 })
 
 export function leerEntornoPublico(fuente: Record<string, string | undefined>) {

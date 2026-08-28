@@ -30,6 +30,7 @@ interface PersonaObjetivo {
   personaId: string
   reciboId: string
   email: string | null
+  telefono: string | null
   tienePush: boolean
 }
 
@@ -40,13 +41,13 @@ async function personasDeLiquidacion(
 ): Promise<PersonaObjetivo[]> {
   const { data: recibos } = await servicio
     .from('recibos')
-    .select('id, legajos(personas(id, email)), conformidades(id)')
+    .select('id, legajos(personas(id, email, telefono)), conformidades(id)')
     .eq('liquidacion_id', liquidacionId)
     .eq('estado', 'vigente')
 
   const filas = ((recibos as unknown as Array<{
     id: string
-    legajos: { personas: { id: string; email: string | null } | null } | null
+    legajos: { personas: { id: string; email: string | null; telefono: string | null } | null } | null
     conformidades: { id: string } | null
   }>) ?? []).filter((r) => r.legajos?.personas)
 
@@ -66,6 +67,7 @@ async function personasDeLiquidacion(
     personaId: r.legajos!.personas!.id,
     reciboId: r.id,
     email: r.legajos!.personas!.email,
+    telefono: r.legajos!.personas!.telefono,
     tienePush: conPush.has(r.legajos!.personas!.id),
   }))
 }
@@ -149,10 +151,15 @@ async function encolar(
   const ahora = new Date().toISOString()
   const filas: Array<Record<string, unknown>> = []
 
+  const whatsappActivo = Boolean(
+    process.env.EVOLUTION_API_URL && process.env.EVOLUTION_API_KEY && process.env.EVOLUTION_INSTANCE,
+  )
+
   for (const o of objetivos) {
-    for (const canal of ['email', 'push'] as const) {
+    for (const canal of ['email', 'push', 'whatsapp'] as const) {
       if (canal === 'email' && !o.email) continue
       if (canal === 'push' && !o.tienePush) continue
+      if (canal === 'whatsapp' && (!whatsappActivo || !o.telefono)) continue
       if (yaHay.has(`${o.personaId}:${canal}`)) continue
       filas.push({
         persona_id: o.personaId,
@@ -320,9 +327,9 @@ async function destinoDe(
 
   const { data: persona } = await servicio
     .from('personas')
-    .select('email')
+    .select('email, telefono')
     .eq('id', personaId)
-    .maybeSingle<{ email: string | null }>()
+    .maybeSingle<{ email: string | null; telefono: string | null }>()
 
   const { data: subs } = await servicio
     .from('push_subscriptions')
@@ -331,6 +338,7 @@ async function destinoDe(
 
   const destino: DatosDestino = {
     email: persona?.email ?? null,
+    telefono: persona?.telefono ?? null,
     suscripcionesPush: (subs as DatosDestino['suscripcionesPush'] | null) ?? [],
   }
   cache.set(personaId, destino)
