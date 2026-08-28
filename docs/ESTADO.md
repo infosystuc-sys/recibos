@@ -1,7 +1,7 @@
 # Conforme — Estado del proyecto y cómo continuar
 
 > **Documento de traspaso.** Si estás retomando este proyecto en una conversación nueva, leé
-> esto primero y después el spec. Última actualización: 2026-08-28, commit `ce3154d`.
+> esto primero y después el spec. Última actualización: 2026-08-28, commit `a1a979d`.
 
 ---
 
@@ -42,8 +42,8 @@ RS_202604_1QA_680_201_20-27103275-8.pdf
 | | |
 |---|---|
 | Rama | `fase1a-admin-ingesta` (creada desde `main` en `4e4a815`) |
-| HEAD | `ce3154d` |
-| Commits en la rama | 29 |
+| HEAD | `a1a979d` |
+| Commits en la rama | 31 |
 | Tests | **78 unitarios** (14 archivos) + **6 de integración RLS** + **3 E2E** de ingreso, todos verdes |
 | TypeScript | `npx tsc --noEmit` limpio, modo estricto |
 | Build | `npm run build` verde |
@@ -92,6 +92,10 @@ verificaron** en `twejfeghrujsqzzuzvtf` (ver §3):
 
 **Importación de padrón** — `src/acciones/padron.ts` (`importarPadron`), pantalla
 `/admin/empleados/importar` (vista previa + errores + posibles bajas).
+
+**Empleados y códigos** — `src/acciones/codigos.ts` (`generarCodigoActivacion`),
+`guardarEmpleado` en `padron.ts`, listado `/admin/empleados` (filtros + buscador + generar
+código) y ABM manual `/admin/empleados/nuevo`.
 
 **Verificación contra datos reales:** el parser reconoce los 28 PDFs de
 `D:\APP\RECIBOS\Ejemplo Delta 6` sin ignorar ninguno.
@@ -173,7 +177,7 @@ trampa #4); su limpieza es best-effort y acotada a los ids que crea.
 
 ## 4. Qué falta
 
-Del plan de 18 tareas, están completas **la 1 a la 13**. De las tareas 14 a 16 se
+Del plan de 18 tareas, están completas **la 1 a la 14**. De las tareas 15 y 16 se
 extrajeron y completaron **solo los módulos de lógica pura** (los Steps 1 a 4 de cada una).
 Falta:
 
@@ -183,7 +187,7 @@ Falta:
 | ~~11~~ | ✅ Hecha. `sesion.ts`, `proxy.ts` (ver desvío abajo), ingreso, layout `/admin`, semilla, E2E verde (`4cb0a24`, `c552815`) | — |
 | ~~12~~ | ✅ Hecha. `auditoria.ts`, `acciones/empresas.ts`, `acciones/administradores.ts`, pantallas `/admin/empresas` y `/admin/usuarios`, nav por rol. Verificada end-to-end (`f9f1199`) | — |
 | ~~13~~ | ✅ Hecha. `acciones/padron.ts` (`importarPadron`), pantalla `/admin/empleados/importar` con vista previa. Verificada end-to-end (`ce3154d`) | — |
-| 14 | Steps 5-9: Server Action `generarCodigoActivacion`, listado de empleados, ABM manual | Tarea 11 |
+| ~~14~~ | ✅ Hecha. `acciones/codigos.ts`, `guardarEmpleado`, listado `/admin/empleados` con filtros + generación de códigos, ABM manual `/admin/empleados/nuevo`. Verificada end-to-end (`a1a979d`) | — |
 | 15 | Steps 5-8: `handle-persistido.ts` (IndexedDB) y el componente `selector-carpeta.tsx` | Tarea 11 |
 | 16 | Steps 5-7: Server Action `prepararSubida` y la subida desde la interfaz | Tarea 11 |
 | 17 | Completa: migración `0006_publicar.sql`, `registrarRecibos`, `publicarLiquidacion`, pantalla de ingesta | Tareas 10-16 |
@@ -286,6 +290,15 @@ Para triaje en la revisión final, ninguno bloqueante:
   padrones grandes conviene lotear. No bloquea a la escala esperada (decenas–cientos).
 - El registro en `importaciones` guarda `errores: 0` siempre: la pantalla filtra las filas
   con error antes de confirmar, así que el Server Action nunca las ve.
+- **`codigos_activacion` sigue sin política RLS de lectura** (la Tarea 14 lo confirmó como
+  deliberado). El listado de empleados consulta el estado "código vigente" con
+  `clienteServicio()` desde el Server Component, después de `exigirAdmin`. Si en algún
+  momento se agrega `admin_lee_codigos ... using (es_admin())`, ese caso puede volver a
+  `clienteServidor()`.
+- `guardarEmpleado` usa `z.coerce.boolean()` para `activo`: el checkbox del form manda
+  `activo=si` cuando está tildado y nada cuando no. `Boolean("si")`=true,
+  `Boolean(undefined)`=false. **No cambiar el `value` del checkbox a `"false"`**: cualquier
+  string no vacío coerciona a `true`.
 
 ---
 
@@ -337,13 +350,11 @@ revisión queda limpia.
   misma carpeta: `extraer-brief.sh <plan> <numero> <destino>`. Es necesario porque el plan
   está en español y el script que trae la skill busca encabezados en inglés (`## Task N`).
 
-**El próximo paso concreto** es la **Tarea 14** (códigos de activación). Ya están
-`src/lib/codigo-activacion.ts` y su test; faltan los Steps 5-9: la Server Action
-`generarCodigoActivacion` en `src/acciones/codigos.ts`, el listado de empleados
-`src/app/admin/empleados/page.tsx` (con generación de códigos), el alta/edición manual
-(`guardarEmpleado` en `src/acciones/padron.ts` + `src/app/admin/empleados/nuevo/page.tsx`).
-Nota: la Tarea 13 ya creó `/admin/empleados/importar`; el link de nav "Importar padrón"
-seguramente se reacomode bajo un "Empleados" cuando exista el listado.
+**El próximo paso concreto** es la **Tarea 15** (conexión de carpeta y escaneo). Ya está
+`src/lib/carpeta/escanear.ts` con su test; faltan los Steps 5-8:
+`src/lib/carpeta/handle-persistido.ts` (guardar/recuperar el `FileSystemDirectoryHandle` en
+IndexedDB) y `src/componentes/selector-carpeta.tsx` (File System Access API con fallback de
+arrastrar y soltar — obligatorio, solo Chrome/Edge tienen la API).
 
 Notas para retomar:
 
