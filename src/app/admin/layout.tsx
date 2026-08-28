@@ -17,6 +17,7 @@ export default async function LayoutAdmin({ children }: { children: ReactNode })
             <Link href="/admin/empresas">Empresas</Link>
             <Link href="/admin/empleados">Empleados</Link>
             <Link href="/admin/liquidaciones">Liquidaciones</Link>
+            <Link href="/admin/observaciones">Observaciones</Link>
             {admin.rol === 'admin' && <Link href="/admin/usuarios">Usuarios</Link>}
           </nav>
         </div>

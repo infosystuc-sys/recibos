@@ -6,6 +6,7 @@ import { clienteServicio } from '@/lib/supabase/cliente-servicio'
 import { clienteServidor } from '@/lib/supabase/cliente-servidor'
 import { ETIQUETA_TIPO, type TipoLiquidacion } from '@/lib/tango/parse-nombre-recibo'
 import { DescargarRecibo } from './acciones-recibo'
+import Observaciones from './observaciones'
 
 interface Params {
   params: Promise<{ id: string }>
@@ -36,6 +37,12 @@ export default async function VerRecibo({ params, searchParams }: Params) {
   const { data: firmada } = await clienteServicio()
     .storage.from('recibos')
     .createSignedUrl(recibo.storage_path, 60)
+
+  const { data: observaciones } = await supabase
+    .from('observaciones')
+    .select('id, texto, estado, respuesta, created_at')
+    .eq('recibo_id', recibo.id)
+    .order('created_at', { ascending: false })
 
   return (
     <section className="flex flex-col gap-5">
@@ -103,6 +110,8 @@ export default async function VerRecibo({ params, searchParams }: Params) {
           </div>
         </>
       )}
+
+      <Observaciones reciboId={recibo.id} observaciones={observaciones ?? []} />
     </section>
   )
 }
