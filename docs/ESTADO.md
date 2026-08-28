@@ -311,6 +311,19 @@ Para triaje en la revisión final, ninguno bloqueante:
   `activo=si` cuando está tildado y nada cuando no. `Boolean("si")`=true,
   `Boolean(undefined)`=false. **No cambiar el `value` del checkbox a `"false"`**: cualquier
   string no vacío coerciona a `true`.
+- **`entorno.ts` entra entero al bundle de cliente** porque `cliente-navegador.ts` importa
+  `leerEntornoPublico` de ahí, y eso arrastra `esquemaServidor` con el string
+  `"SUPABASE_SERVICE_ROLE_KEY"` (el **nombre**, no el valor). No filtra nada sensible; la
+  clave de servicio no aparece en el JS de cliente (verificado). Si molesta, separar en
+  `entorno-publico.ts` / `entorno-servidor.ts`.
+- `registrarRecibos` (Tarea 17) baja la versión vigente anterior de cada legajo antes de
+  insertar la nueva. `publicar_liquidacion` repite ese `update` como red de seguridad: bajo
+  el índice `recibo_vigente_unico` nunca puede haber dos vigentes, así que en la práctica
+  ese `update` de la función es un no-op. No lo saques: cubre inserciones hechas por fuera
+  de `registrarRecibos`.
+- La política `empleado_lee_sus_recibos` **no filtra `estado`**: un empleado ve también las
+  versiones `reemplazado` de sus recibos. El portal de la Fase 1B debe filtrar
+  `estado = 'vigente'` en la consulta o endurecer la política.
 
 ---
 
