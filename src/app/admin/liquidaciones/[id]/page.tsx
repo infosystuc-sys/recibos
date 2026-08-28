@@ -8,14 +8,20 @@ import { clienteServidor } from '@/lib/supabase/cliente-servidor'
 import { ETIQUETA_TIPO } from '@/lib/tango/parse-nombre-recibo'
 import PublicarBoton from './publicar-boton'
 
-export default async function PaginaLiquidacion({ params }: { params: Promise<{ id: string }> }) {
+interface Params {
+  params: Promise<{ id: string }>
+  searchParams: Promise<{ pendientes?: string }>
+}
+
+export default async function PaginaLiquidacion({ params, searchParams }: Params) {
   const admin = await exigirAdmin('ver')
   const { id } = await params
+  const { pendientes } = await searchParams
   const supabase = await clienteServidor()
 
   const { data: liquidacion } = await supabase
     .from('liquidaciones')
-    .select('id, periodo, tipo, dato_fijo, estado, publicada_at, notas, empresas(razon_social)')
+    .select('id, periodo, tipo, dato_fijo, estado, publicada_at, empresas(razon_social)')
     .eq('id', id)
     .maybeSingle()
 
@@ -23,14 +29,30 @@ export default async function PaginaLiquidacion({ params }: { params: Promise<{ 
 
   const { data: recibos } = await supabase
     .from('recibos')
-    .select('id, version, estado, nombre_original, bytes, cuil_archivo, subido_at, legajos(numero, personas(apellido_nombre))')
+    .select(
+      'id, version, estado, nombre_original, cuil_archivo, legajos(numero, personas(apellido_nombre)), conformidades(created_at, comprobante_codigo)',
+    )
     .eq('liquidacion_id', id)
     .order('version', { ascending: false })
 
-  const vigentes = (recibos ?? []).filter((r) => r.estado === 'vigente')
+  const todos = recibos ?? []
+  const vigentes = todos.filter((r) => r.estado === 'vigente')
+  const conformados = vigentes.filter((r) => r.conformidades)
+  const porcentaje = vigentes.length
+    ? Math.round((conformados.length / vigentes.length) * 100)
+    : 0
+
+  const soloPendientes = pendientes === '1'
+  const seguimiento = [...vigentes]
+    .filter((r) => !soloPendientes || !r.conformidades)
+    .sort(
+      (a, b) =>
+        Number(Boolean(a.conformidades)) - Number(Boolean(b.conformidades)) ||
+        (a.legajos?.numero ?? 0) - (b.legajos?.numero ?? 0),
+    )
 
   return (
-    <section className="flex flex-col gap-4">
+    <section className="flex flex-col gap-5">
       <div className="flex items-center gap-3 text-sm">
         <Link href="/admin/liquidaciones" className="underline">
           Liquidaciones
@@ -57,6 +79,76 @@ export default async function PaginaLiquidacion({ params }: { params: Promise<{ 
         <PublicarBoton liquidacionId={liquidacion.id} />
       )}
 
+      {liquidacion.estado === 'publicada' && vigentes.length > 0 && (
+        <div className="flex flex-col gap-3 rounded-lg border p-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-semibold">Seguimiento de conformidad</h2>
+            <Link
+              href={`/admin/liquidaciones/${id}/seguimiento.csv`}
+              prefetch={false}
+              className="text-sm underline"
+            >
+              Exportar CSV
+            </Link>
+          </div>
+
+          <div>
+            <div className="h-2 w-full overflow-hidden rounded bg-neutral-200 dark:bg-neutral-700">
+              <div className="h-full bg-green-600" style={{ width: `${porcentaje}%` }} />
+            </div>
+            <p className="mt-1 text-sm">
+              {conformados.length} de {vigentes.length} conformados ({porcentaje}%)
+            </p>
+          </div>
+
+          <div className="flex gap-3 text-sm">
+            <Link
+              href={`/admin/liquidaciones/${id}`}
+              className={!soloPendientes ? 'font-semibold' : 'underline'}
+            >
+              Todos
+            </Link>
+            <Link
+              href={`/admin/liquidaciones/${id}?pendientes=1`}
+              className={soloPendientes ? 'font-semibold' : 'underline'}
+            >
+              Solo pendientes ({vigentes.length - conformados.length})
+            </Link>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="text-left text-neutral-500">
+                <tr>
+                  <th className="py-2">Legajo</th>
+                  <th>Nombre</th>
+                  <th>Conformidad</th>
+                </tr>
+              </thead>
+              <tbody>
+                {seguimiento.map((r) => (
+                  <tr key={r.id} className="border-t">
+                    <td className="py-2">{r.legajos?.numero ?? '—'}</td>
+                    <td>{r.legajos?.personas?.apellido_nombre ?? '—'}</td>
+                    <td>
+                      {r.conformidades ? (
+                        <span className="text-green-700 dark:text-green-400">
+                          {new Date(r.conformidades.created_at).toLocaleString('es-AR')} ·{' '}
+                          {r.conformidades.comprobante_codigo}
+                        </span>
+                      ) : (
+                        <span className="text-amber-700 dark:text-amber-400">Pendiente</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      <h2 className="text-sm font-semibold text-neutral-500">Recibos</h2>
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead className="text-left text-neutral-500">
@@ -70,7 +162,7 @@ export default async function PaginaLiquidacion({ params }: { params: Promise<{ 
             </tr>
           </thead>
           <tbody>
-            {(recibos ?? []).map((r) => (
+            {todos.map((r) => (
               <tr key={r.id} className="border-t">
                 <td className="py-2">{r.legajos?.numero ?? '—'}</td>
                 <td>{r.legajos?.personas?.apellido_nombre ?? '—'}</td>
