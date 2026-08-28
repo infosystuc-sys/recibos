@@ -47,12 +47,14 @@ export async function escanearDirectorio(
       continue
     }
 
-    const archivo = await entrada.getFile()
+    const getFile = entrada.getFile
+    const archivo = await getFile()
     archivos.push({
       nombre: entrada.name,
       rutaRelativa: ruta,
       bytes: archivo.size,
       datos,
+      obtenerArchivo: getFile,
     })
   }
 

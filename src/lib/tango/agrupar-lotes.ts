@@ -7,6 +7,11 @@ export interface ArchivoEscaneado {
   rutaRelativa: string
   bytes: number
   datos: ReciboParseado
+  /**
+   * Devuelve el contenido del archivo. Lo puebla `escanearDirectorio`; queda
+   * `undefined` cuando el archivo se arma a mano (tests) o no hay contenido.
+   */
+  obtenerArchivo?: () => Promise<File>
 }
 
 export interface ClaveLiquidacion {

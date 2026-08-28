@@ -19,6 +19,40 @@ interface Props {
   onResultado: (resultado: ResultadoEscaneo) => void
 }
 
+// Construye un DirectorioLegible a partir de un <input type="file" webkitdirectory>.
+// Cada File trae webkitRelativePath = "carpetaRaiz/sub/archivo.pdf"; se descarta
+// el primer segmento (igual que hace la File System Access API con la raíz).
+function directorioDesdeArchivos(archivos: File[]): DirectorioLegible {
+  interface Nodo {
+    dirs: Map<string, Nodo>
+    files: File[]
+  }
+  const raiz: Nodo = { dirs: new Map(), files: [] }
+  for (const f of archivos) {
+    const partes = (f.webkitRelativePath || f.name).split('/')
+    partes.pop()
+    let nodo = raiz
+    for (const parte of partes.slice(1)) {
+      if (!nodo.dirs.has(parte)) nodo.dirs.set(parte, { dirs: new Map(), files: [] })
+      nodo = nodo.dirs.get(parte)!
+    }
+    nodo.files.push(f)
+  }
+  function aDirectorio(nodo: Nodo): DirectorioLegible {
+    return {
+      async *values() {
+        for (const [nombre, hijo] of nodo.dirs) {
+          yield { kind: 'directory' as const, name: nombre, values: aDirectorio(hijo).values }
+        }
+        for (const f of nodo.files) {
+          yield { kind: 'file' as const, name: f.name, getFile: async () => f }
+        }
+      },
+    }
+  }
+  return aDirectorio(raiz)
+}
+
 // Adapta un FileSystemEntry (drag & drop) a la interfaz que espera escanearDirectorio.
 function adaptarEntrada(entry: FileSystemEntry): EntradaLegible {
   if (entry.isFile) {
@@ -167,6 +201,23 @@ export default function SelectorCarpeta({ empresaId, onResultado }: Props) {
       >
         {ocupado ? 'Escaneando…' : 'Arrastrá acá la carpeta con los recibos de Tango'}
       </div>
+
+      <label className="text-sm text-neutral-500">
+        o elegí la carpeta manualmente (no se recuerda):{' '}
+        <input
+          type="file"
+          /* @ts-expect-error webkitdirectory no está en los tipos de React */
+          webkitdirectory=""
+          directory=""
+          multiple
+          disabled={ocupado}
+          onChange={(e) => {
+            const archivos = [...(e.target.files ?? [])]
+            if (archivos.length > 0) procesar(directorioDesdeArchivos(archivos))
+          }}
+          className="text-sm"
+        />
+      </label>
 
       {resumen && <p className="text-sm text-neutral-700">{resumen}</p>}
       {error && (

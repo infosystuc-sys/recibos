@@ -16,6 +16,7 @@ export default async function LayoutAdmin({ children }: { children: ReactNode })
           <nav className="flex items-center gap-4 text-sm">
             <Link href="/admin/empresas">Empresas</Link>
             <Link href="/admin/empleados">Empleados</Link>
+            <Link href="/admin/liquidaciones">Liquidaciones</Link>
             {admin.rol === 'admin' && <Link href="/admin/usuarios">Usuarios</Link>}
           </nav>
         </div>
