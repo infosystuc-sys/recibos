@@ -1,7 +1,7 @@
 # Conforme — Estado del proyecto y cómo continuar
 
 > **Documento de traspaso.** Si estás retomando este proyecto en una conversación nueva, leé
-> esto primero y después el spec. Última actualización: 2026-08-28, commit `c552815`.
+> esto primero y después el spec. Última actualización: 2026-08-28, commit `f9f1199`.
 
 ---
 
@@ -42,9 +42,9 @@ RS_202604_1QA_680_201_20-27103275-8.pdf
 | | |
 |---|---|
 | Rama | `fase1a-admin-ingesta` (creada desde `main` en `4e4a815`) |
-| HEAD | `c552815` |
-| Commits en la rama | 25 |
-| Tests | **78 unitarios** (14 archivos) + **3 E2E** de ingreso, todos verdes |
+| HEAD | `f9f1199` |
+| Commits en la rama | 27 |
+| Tests | **78 unitarios** (14 archivos) + **6 de integración RLS** + **3 E2E** de ingreso, todos verdes |
 | TypeScript | `npx tsc --noEmit` limpio, modo estricto |
 | Build | `npm run build` verde |
 | Sin subir | La rama **no** se pusheó a GitHub todavía |
@@ -85,6 +85,10 @@ verificaron** en `twejfeghrujsqzzuzvtf` (ver §3):
 
 **Autenticación admin** — `src/lib/sesion.ts` (`obtenerAdmin` / `exigirAdmin`),
 `src/proxy.ts`, `src/acciones/sesion.ts`, pantalla `/ingresar`, layout e inicio de `/admin`.
+
+**ABM admin** — `src/lib/auditoria.ts`, `src/acciones/empresas.ts`,
+`src/acciones/administradores.ts`, pantallas `/admin/empresas`, `/admin/empresas/nueva`,
+`/admin/usuarios`. Nav del layout condicionada por rol.
 
 **Verificación contra datos reales:** el parser reconoce los 28 PDFs de
 `D:\APP\RECIBOS\Ejemplo Delta 6` sin ignorar ninguno.
@@ -149,20 +153,24 @@ Creado en `twejfeghrujsqzzuzvtf`:
 
 `supabase/semillas/primer-admin.sql` quedó como plantilla genérica para futuros despliegues.
 
-### Test de integración (RLS) — todavía sin correr
+### Test de integración (RLS) — corrido, 6/6 verde (2026-08-28)
 
 ```bash
-npm install -D dotenv-cli
-npx dotenv -e .env.local -- npm run test:integracion
+set -a; . ./.env.local; set +a      # bash: cargar las vars
+npm run test:integracion
 ```
 
-Ojo: corre contra el **mismo** proyecto que la app (no hay base separada). Ver trampa #4.
+Confirma en la práctica lo que ya se había verificado a mano: el empleado ve su recibo
+publicado y **no** el de otro, no ve recibos de liquidaciones en borrador, no ve datos de
+terceros, no puede insertar conformidades ni leer `admin_usuarios`. No hizo falta
+`dotenv-cli`. Ojo: corre contra el **mismo** proyecto que la app (no hay base separada, ver
+trampa #4); su limpieza es best-effort y acotada a los ids que crea.
 
 ---
 
 ## 4. Qué falta
 
-Del plan de 18 tareas, están completas **la 1 a la 11**. De las tareas 12 a 16 se
+Del plan de 18 tareas, están completas **la 1 a la 12**. De las tareas 13 a 16 se
 extrajeron y completaron **solo los módulos de lógica pura** (los Steps 1 a 4 de cada una).
 Falta:
 
@@ -170,7 +178,7 @@ Falta:
 |---|---|---|
 | ~~10~~ | ✅ Hecha. `tipos.ts` + `cliente-navegador/servidor/servicio.ts` (`c63bda4`) | — |
 | ~~11~~ | ✅ Hecha. `sesion.ts`, `proxy.ts` (ver desvío abajo), ingreso, layout `/admin`, semilla, E2E verde (`4cb0a24`, `c552815`) | — |
-| 12 | Steps 5-11: Server Actions de empresas, `auditoria.ts`, pantallas, gestión de usuarios administradores | Tarea 11 |
+| ~~12~~ | ✅ Hecha. `auditoria.ts`, `acciones/empresas.ts`, `acciones/administradores.ts`, pantallas `/admin/empresas` y `/admin/usuarios`, nav por rol. Verificada end-to-end (`f9f1199`) | — |
 | 13 | Steps 5-8: Server Action `importarPadron` y pantalla de importación | Tarea 11 |
 | 14 | Steps 5-9: Server Action `generarCodigoActivacion`, listado de empleados, ABM manual | Tarea 11 |
 | 15 | Steps 5-8: `handle-persistido.ts` (IndexedDB) y el componente `selector-carpeta.tsx` | Tarea 11 |
@@ -319,11 +327,10 @@ revisión queda limpia.
   misma carpeta: `extraer-brief.sh <plan> <numero> <destino>`. Es necesario porque el plan
   está en español y el script que trae la skill busca encabezados en inglés (`## Task N`).
 
-**El próximo paso concreto** es la **Tarea 12** (ABM de empresas y de usuarios
-administradores). Ya está la lógica pura (`src/lib/validaciones/empresa.ts` y su test);
-faltan los Steps 5-11: `src/lib/auditoria.ts`, `src/acciones/empresas.ts`,
-`src/acciones/administradores.ts` y las pantallas bajo `src/app/admin/empresas` y
-`src/app/admin/usuarios`.
+**El próximo paso concreto** es la **Tarea 13** (importación del padrón desde CSV). Ya está
+`src/lib/padron/parse-csv-padron.ts` con su test; faltan los Steps 5-8: la Server Action
+`importarPadron(empresaId, filas)` en `src/acciones/padron.ts` y la pantalla
+`src/app/admin/empleados/importar/page.tsx`.
 
 Notas para retomar:
 
@@ -340,9 +347,8 @@ Notas para retomar:
 
 ```bash
 npm test                  # tests unitarios (78)
-npm run test:integracion  # RLS — necesita .env.local y el esquema aplicado (todavía sin correr)
-npm run test:e2e          # Playwright — 3 casos de ingreso, verdes. Cargar antes las vars:
-                          #   set -a; . ./.env.local; set +a   (bash)
+npm run test:integracion  # RLS (6) — cargar antes: set -a; . ./.env.local; set +a  (bash)
+npm run test:e2e          # Playwright — 3 casos de ingreso, verdes. Misma carga de vars.
 npm run build             # build de producción
 npm run dev               # servidor de desarrollo
 npm run tipos             # regenerar tipos desde el esquema de Supabase
