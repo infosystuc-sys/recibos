@@ -1,7 +1,7 @@
 # Conforme — Estado del proyecto y cómo continuar
 
 > **Documento de traspaso.** Si estás retomando este proyecto en una conversación nueva, leé
-> esto primero y después el spec. Última actualización: 2026-08-28, commit `328906e`.
+> esto primero y después el spec. Última actualización: 2026-08-28, commit `5b18380`.
 
 ---
 
@@ -42,12 +42,14 @@ RS_202604_1QA_680_201_20-27103275-8.pdf
 | | |
 |---|---|
 | Rama | `fase1a-admin-ingesta` (creada desde `main` en `4e4a815`) |
-| HEAD | `328906e` |
-| Commits en la rama | 37 |
+| Rama principal | `main` — la de trabajo `fase1a-admin-ingesta` se mergeó por fast-forward |
+| HEAD | `5b18380` |
+| Commits | 41 (más el `4e4a815` de base) |
 | Tests | **78 unitarios** + **10 de integración** (6 RLS + 4 publicación) + **3 E2E** de ingreso, todos verdes |
 | TypeScript | `npx tsc --noEmit` limpio, modo estricto |
 | Build | `npm run build` verde |
-| Sin subir | La rama **no** se pusheó a GitHub todavía |
+| GitHub | **`main` pusheado** a `infosystuc-sys/recibos` |
+| Vercel | **pendiente** — ya existe un proyecto llamado `recibos` (no visible en el team vía MCP; ver §7) |
 | Migraciones | **0001–0005 aplicadas** en `twejfeghrujsqzzuzvtf` y verificadas |
 | Tipos | `src/lib/supabase/tipos.ts` generado del esquema vivo |
 
@@ -353,9 +355,9 @@ Para triaje en la revisión final, ninguno bloqueante:
 
 | Servicio | URL | Estado verificado |
 |---|---|---|
-| GitHub | https://github.com/infosystuc-sys/recibos | Accesible; `origin` configurado; **vacío**, nada pusheado |
+| GitHub | https://github.com/infosystuc-sys/recibos | **`main` pusheado** (41 commits). `origin` configurado y trackeando. |
 | Supabase | https://supabase.com/dashboard/project/twejfeghrujsqzzuzvtf | **Operativo** vía Personal Access Token (CLI + Management API). Org `uthumtopjpmokeguoiew`. Conector MCP: sigue sin conectar. |
-| Vercel | https://vercel.com/infosystuc-4207s-projects/recibos | Equipo correcto (`team_Pgq151Al9nDgNFPO8prQAb78`, plan Hobby); el proyecto **todavía no existe** |
+| Vercel | https://vercel.com/infosystuc-4207s-projects/recibos | Team `team_Pgq151Al9nDgNFPO8prQAb78` (plan Hobby). **`create_git_project` devolvió 409 "recibos already exists"**, pero `list_projects`/`get_project` del team no lo ven → el proyecto existe en otra cuenta (probablemente la personal del usuario autenticado en el conector MCP de Vercel). Hay que resolverlo desde el panel. |
 
 La CLI de Vercel no está instalada. `gh` tampoco.
 
@@ -375,15 +377,19 @@ revisión queda limpia.
   misma carpeta: `extraer-brief.sh <plan> <numero> <destino>`. Es necesario porque el plan
   está en español y el script que trae la skill busca encabezados en inglés (`## Task N`).
 
-**El próximo paso concreto** es la **Tarea 18** (despliegue): `README.md`, `vercel.json`
-(opcional; el proyecto no lo necesita), push de la rama, crear el proyecto en Vercel
-(`infosystuc-sys/recibos`), cargar las 4 variables de entorno en los 3 entornos, y las
-verificaciones post-deploy (redirección `/admin`→`/ingresar`, login, y **grep de
-`service_role` en el JS servido → 0 coincidencias**).
+**Lo que falta de la Tarea 18** (todo en Vercel; el código y el push ya están):
 
-Ojo: `main` en GitHub está vacío; la rama `fase1a-admin-ingesta` nunca se pusheó. El plan
-dice `git push -u origin main` — decidir con el usuario si se mergea a `main` primero o se
-pushea la rama. La CLI de Vercel y `gh` no están instaladas.
+1. **Resolver el proyecto `recibos` en Vercel.** Ya existe uno con ese nombre pero no está
+   en el team `infosystuc-4207's projects`. Desde el panel: o moverlo al team, o borrarlo y
+   reimportarlo, o crear el del team con otro nombre. Debe quedar linkeado a
+   `infosystuc-sys/recibos`, rama de producción `main`.
+2. **Cargar 4 variables** en Production, Preview y Development:
+   `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`,
+   `SUPABASE_SERVICE_ROLE_KEY` (sin `NEXT_PUBLIC_`), `EMPLEADO_EMAIL_DOMAIN`.
+   Los valores están en `.env.local` local.
+3. **Verificar el deploy:** `/admin` redirige a `/ingresar`; login con
+   `taroriva5199@gmail.com` funciona; el listado de empresas carga; y en el JS servido
+   **no aparece `service_role`** (0 coincidencias — ya verificado sobre el build local).
 
 Notas para retomar:
 
