@@ -1,0 +1,39 @@
+import Link from 'next/link'
+import { exigirAdmin } from '@/lib/sesion'
+import { clienteServidor } from '@/lib/supabase/cliente-servidor'
+import ImportadorPadron from './importador'
+
+export default async function PaginaImportarPadron() {
+  await exigirAdmin('operar')
+  const supabase = await clienteServidor()
+  const { data: empresas } = await supabase
+    .from('empresas')
+    .select('id, razon_social')
+    .eq('activa', true)
+    .order('razon_social')
+
+  return (
+    <section className="flex flex-col gap-4">
+      <div className="flex items-center gap-3 text-sm">
+        <Link href="/admin/empleados" className="underline">
+          Empleados
+        </Link>
+        <span className="text-neutral-400">/</span>
+        <span>Importar padrón</span>
+      </div>
+      <h1 className="text-xl font-semibold">Importar padrón</h1>
+
+      {empresas && empresas.length > 0 ? (
+        <ImportadorPadron empresas={empresas} />
+      ) : (
+        <p className="text-sm text-neutral-600">
+          Primero cargá una empresa en{' '}
+          <Link href="/admin/empresas" className="underline">
+            Empresas
+          </Link>
+          .
+        </p>
+      )}
+    </section>
+  )
+}
