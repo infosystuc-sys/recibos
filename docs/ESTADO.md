@@ -1,7 +1,7 @@
 # Conforme — Estado del proyecto y cómo continuar
 
 > **Documento de traspaso.** Si estás retomando este proyecto en una conversación nueva, leé
-> esto primero y después el spec. Última actualización: 2026-08-28, commit `cc34697`.
+> esto primero y después el spec. Última actualización: 2026-08-28, commit `9b93be4`.
 
 ---
 
@@ -42,8 +42,8 @@ RS_202604_1QA_680_201_20-27103275-8.pdf
 | | |
 |---|---|
 | Rama | `fase1a-admin-ingesta` (creada desde `main` en `4e4a815`) |
-| HEAD | `cc34697` |
-| Commits en la rama | 33 |
+| HEAD | `9b93be4` |
+| Commits en la rama | 35 |
 | Tests | **78 unitarios** (14 archivos) + **6 de integración RLS** + **3 E2E** de ingreso, todos verdes |
 | TypeScript | `npx tsc --noEmit` limpio, modo estricto |
 | Build | `npm run build` verde |
@@ -100,6 +100,10 @@ código) y ABM manual `/admin/empleados/nuevo`.
 **Carpeta local** — `src/lib/carpeta/handle-persistido.ts` (IndexedDB por empresa) y
 `src/componentes/selector-carpeta.tsx` (todavía sin usar: lo consume la pantalla de ingesta
 de la Tarea 17).
+
+**Subida** — `src/acciones/subida.ts` (`prepararSubida`: liquidación borrador + URLs
+firmadas) y `src/lib/subida/subir-a-storage.ts` (`hashDeArchivo`, `subirArchivoFirmado` con
+reintentos). También sin usar hasta la pantalla de ingesta.
 
 **Verificación contra datos reales:** el parser reconoce los 28 PDFs de
 `D:\APP\RECIBOS\Ejemplo Delta 6` sin ignorar ninguno.
@@ -181,8 +185,7 @@ trampa #4); su limpieza es best-effort y acotada a los ids que crea.
 
 ## 4. Qué falta
 
-Del plan de 18 tareas, están completas **la 1 a la 15**. De la tarea 16 se extrajeron y
-completaron **solo los módulos de lógica pura** (Steps 1 a 4). Falta:
+Del plan de 18 tareas, están completas **la 1 a la 16**. Falta:
 
 | Tarea | Qué falta | Depende de |
 |---|---|---|
@@ -192,7 +195,7 @@ completaron **solo los módulos de lógica pura** (Steps 1 a 4). Falta:
 | ~~13~~ | ✅ Hecha. `acciones/padron.ts` (`importarPadron`), pantalla `/admin/empleados/importar` con vista previa. Verificada end-to-end (`ce3154d`) | — |
 | ~~14~~ | ✅ Hecha. `acciones/codigos.ts`, `guardarEmpleado`, listado `/admin/empleados` con filtros + generación de códigos, ABM manual `/admin/empleados/nuevo`. Verificada end-to-end (`a1a979d`) | — |
 | ~~15~~ | ✅ Hecha. `carpeta/handle-persistido.ts` (IndexedDB), `componentes/selector-carpeta.tsx` (FS Access API + fallback de arrastre), `tipos/file-system-access.d.ts`. Verificada contra la carpeta real (`cc34697`) | — |
-| 16 | Steps 5-7: Server Action `prepararSubida` y la subida desde la interfaz | Tarea 11 |
+| ~~16~~ | ✅ Hecha. `acciones/subida.ts` (`prepararSubida`), `lib/subida/subir-a-storage.ts` (hash + subida firmada con reintentos). Round-trip de Storage verificado (`9b93be4`) | — |
 | 17 | Completa: migración `0006_publicar.sql`, `registrarRecibos`, `publicarLiquidacion`, pantalla de ingesta | Tareas 10-16 |
 | 18 | Completa: README, push, proyecto en Vercel, variables, verificación de despliegue | Todo lo anterior |
 
@@ -353,11 +356,12 @@ revisión queda limpia.
   misma carpeta: `extraer-brief.sh <plan> <numero> <destino>`. Es necesario porque el plan
   está en español y el script que trae la skill busca encabezados en inglés (`## Task N`).
 
-**El próximo paso concreto** es la **Tarea 16** (hash y subida a Storage). Ya están
-`src/lib/hash.ts` y `src/lib/subida/subir-lote.ts` con sus tests; faltan los Steps 5-7:
-`src/acciones/subida.ts` con `pedirUrlsDeSubida(reciboIds)` (Server Action que devuelve URLs
-firmadas de subida) y la integración de la subida desde la interfaz. La subida real la
-arma la pantalla de ingesta de la Tarea 17.
+**El próximo paso concreto** es la **Tarea 17** (revisión y publicación del lote), completa:
+migración `supabase/migrations/0006_publicar.sql` (función `publicar_liquidacion`),
+`src/acciones/liquidaciones.ts` (`registrarRecibos`, `publicarLiquidacion`), pantallas
+`src/app/admin/liquidaciones/{page,ingesta/page,[id]/page}.tsx`, y
+`tests/integracion/publicar.test.ts`. Es la tarea que une todo: escaneo → coteo → subida →
+registro → publicación. Después queda la 18 (README + push + Vercel).
 
 Notas para retomar:
 
