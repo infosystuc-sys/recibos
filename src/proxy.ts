@@ -1,7 +1,8 @@
 // En Next.js 16 el archivo `middleware` se renombró a `proxy` (misma función,
 // mismo comportamiento). Refresca la cookie de sesión de Supabase en cada
-// petición y manda a /ingresar a quien intente entrar a /admin sin sesión.
-// La autorización real (rol) se vuelve a verificar en cada layout y Server Action.
+// petición y manda al login que corresponda a quien entre sin sesión a una
+// zona protegida (/admin o /mi). La autorización real (rol del admin, estado
+// del empleado) se vuelve a verificar en cada layout y Server Action.
 
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
@@ -29,11 +30,19 @@ export async function proxy(peticion: NextRequest) {
   )
 
   const { data } = await supabase.auth.getUser()
+  const ruta = peticion.nextUrl.pathname
 
-  if (!data.user && peticion.nextUrl.pathname.startsWith('/admin')) {
-    const destino = peticion.nextUrl.clone()
-    destino.pathname = '/ingresar'
-    return NextResponse.redirect(destino)
+  if (!data.user) {
+    if (ruta.startsWith('/admin')) {
+      const destino = peticion.nextUrl.clone()
+      destino.pathname = '/ingresar'
+      return NextResponse.redirect(destino)
+    }
+    if (ruta.startsWith('/mi') && ruta !== '/mi/ingresar') {
+      const destino = peticion.nextUrl.clone()
+      destino.pathname = '/mi/ingresar'
+      return NextResponse.redirect(destino)
+    }
   }
 
   return respuesta
