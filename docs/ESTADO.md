@@ -1,7 +1,7 @@
 # Conforme — Estado del proyecto y cómo continuar
 
 > **Documento de traspaso.** Si estás retomando este proyecto en una conversación nueva, leé
-> esto primero y después el spec. Última actualización: 2026-08-28, commit `f9f1199`.
+> esto primero y después el spec. Última actualización: 2026-08-28, commit `ce3154d`.
 
 ---
 
@@ -42,8 +42,8 @@ RS_202604_1QA_680_201_20-27103275-8.pdf
 | | |
 |---|---|
 | Rama | `fase1a-admin-ingesta` (creada desde `main` en `4e4a815`) |
-| HEAD | `f9f1199` |
-| Commits en la rama | 27 |
+| HEAD | `ce3154d` |
+| Commits en la rama | 29 |
 | Tests | **78 unitarios** (14 archivos) + **6 de integración RLS** + **3 E2E** de ingreso, todos verdes |
 | TypeScript | `npx tsc --noEmit` limpio, modo estricto |
 | Build | `npm run build` verde |
@@ -89,6 +89,9 @@ verificaron** en `twejfeghrujsqzzuzvtf` (ver §3):
 **ABM admin** — `src/lib/auditoria.ts`, `src/acciones/empresas.ts`,
 `src/acciones/administradores.ts`, pantallas `/admin/empresas`, `/admin/empresas/nueva`,
 `/admin/usuarios`. Nav del layout condicionada por rol.
+
+**Importación de padrón** — `src/acciones/padron.ts` (`importarPadron`), pantalla
+`/admin/empleados/importar` (vista previa + errores + posibles bajas).
 
 **Verificación contra datos reales:** el parser reconoce los 28 PDFs de
 `D:\APP\RECIBOS\Ejemplo Delta 6` sin ignorar ninguno.
@@ -170,7 +173,7 @@ trampa #4); su limpieza es best-effort y acotada a los ids que crea.
 
 ## 4. Qué falta
 
-Del plan de 18 tareas, están completas **la 1 a la 12**. De las tareas 13 a 16 se
+Del plan de 18 tareas, están completas **la 1 a la 13**. De las tareas 14 a 16 se
 extrajeron y completaron **solo los módulos de lógica pura** (los Steps 1 a 4 de cada una).
 Falta:
 
@@ -179,7 +182,7 @@ Falta:
 | ~~10~~ | ✅ Hecha. `tipos.ts` + `cliente-navegador/servidor/servicio.ts` (`c63bda4`) | — |
 | ~~11~~ | ✅ Hecha. `sesion.ts`, `proxy.ts` (ver desvío abajo), ingreso, layout `/admin`, semilla, E2E verde (`4cb0a24`, `c552815`) | — |
 | ~~12~~ | ✅ Hecha. `auditoria.ts`, `acciones/empresas.ts`, `acciones/administradores.ts`, pantallas `/admin/empresas` y `/admin/usuarios`, nav por rol. Verificada end-to-end (`f9f1199`) | — |
-| 13 | Steps 5-8: Server Action `importarPadron` y pantalla de importación | Tarea 11 |
+| ~~13~~ | ✅ Hecha. `acciones/padron.ts` (`importarPadron`), pantalla `/admin/empleados/importar` con vista previa. Verificada end-to-end (`ce3154d`) | — |
 | 14 | Steps 5-9: Server Action `generarCodigoActivacion`, listado de empleados, ABM manual | Tarea 11 |
 | 15 | Steps 5-8: `handle-persistido.ts` (IndexedDB) y el componente `selector-carpeta.tsx` | Tarea 11 |
 | 16 | Steps 5-7: Server Action `prepararSubida` y la subida desde la interfaz | Tarea 11 |
@@ -276,6 +279,13 @@ Para triaje en la revisión final, ninguno bloqueante:
 - CSV: campos entre comillas con salto de línea literal; `trim()` sobre campos citados; sin
   test de fila con menos campos que la cabecera.
 - `puede_operar()` está definida y todavía sin uso (la usa la Fase 1B).
+- **`importarPadron` pisa `email`/`telefono` de `personas` con `null`** si el CSV no trae
+  esas columnas (upsert por `cuil`). Tango siempre exporta las mismas columnas, así que en
+  la práctica no se pierde nada, pero un CSV recortado a mano sí borraría los contactos.
+- `importarPadron` hace un round-trip por fila (upsert persona + insert/update legajo). Con
+  padrones grandes conviene lotear. No bloquea a la escala esperada (decenas–cientos).
+- El registro en `importaciones` guarda `errores: 0` siempre: la pantalla filtra las filas
+  con error antes de confirmar, así que el Server Action nunca las ve.
 
 ---
 
@@ -327,10 +337,13 @@ revisión queda limpia.
   misma carpeta: `extraer-brief.sh <plan> <numero> <destino>`. Es necesario porque el plan
   está en español y el script que trae la skill busca encabezados en inglés (`## Task N`).
 
-**El próximo paso concreto** es la **Tarea 13** (importación del padrón desde CSV). Ya está
-`src/lib/padron/parse-csv-padron.ts` con su test; faltan los Steps 5-8: la Server Action
-`importarPadron(empresaId, filas)` en `src/acciones/padron.ts` y la pantalla
-`src/app/admin/empleados/importar/page.tsx`.
+**El próximo paso concreto** es la **Tarea 14** (códigos de activación). Ya están
+`src/lib/codigo-activacion.ts` y su test; faltan los Steps 5-9: la Server Action
+`generarCodigoActivacion` en `src/acciones/codigos.ts`, el listado de empleados
+`src/app/admin/empleados/page.tsx` (con generación de códigos), el alta/edición manual
+(`guardarEmpleado` en `src/acciones/padron.ts` + `src/app/admin/empleados/nuevo/page.tsx`).
+Nota: la Tarea 13 ya creó `/admin/empleados/importar`; el link de nav "Importar padrón"
+seguramente se reacomode bajo un "Empleados" cuando exista el listado.
 
 Notas para retomar:
 
@@ -349,6 +362,8 @@ Notas para retomar:
 npm test                  # tests unitarios (78)
 npm run test:integracion  # RLS (6) — cargar antes: set -a; . ./.env.local; set +a  (bash)
 npm run test:e2e          # Playwright — 3 casos de ingreso, verdes. Misma carga de vars.
+                          # Tareas 12 y 13 se verificaron con scripts ad-hoc (ya borrados),
+                          # no hay E2E permanente para empresas/usuarios/padrón todavía.
 npm run build             # build de producción
 npm run dev               # servidor de desarrollo
 npm run tipos             # regenerar tipos desde el esquema de Supabase
