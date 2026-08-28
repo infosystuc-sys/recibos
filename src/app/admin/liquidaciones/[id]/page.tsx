@@ -93,7 +93,7 @@ export default async function PaginaLiquidacion({ params, searchParams }: Params
                 Exportar CSV
               </Link>
               <Link
-                href={`/admin/liquidaciones/${id}/constancias.pdf`}
+                href={`/admin/liquidaciones/${id}/constancias`}
                 prefetch={false}
                 className="underline"
               >

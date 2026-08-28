@@ -3,6 +3,10 @@
 /Ejemplo*/
 /recibos-prueba/
 *.pdf
+# …pero el código fuente sí (hubo un route dir `constancias.pdf/` que esto se
+# tragaba; ahora se llama `constancias/`, pero por las dudas).
+!/src/**
+!/tests/**
 
 # Entorno y secretos
 .env
