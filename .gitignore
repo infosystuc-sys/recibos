@@ -9,6 +9,9 @@
 .env*.local
 .vercel
 
+# Supabase CLI (scratch local, no viaja con el repo)
+supabase/.temp/
+
 # Dependencias y build
 node_modules/
 .next/
