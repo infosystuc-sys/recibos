@@ -6,6 +6,7 @@ import { registrarEvento } from '@/lib/auditoria'
 import { hashearCodigo } from '@/lib/codigo-activacion'
 import { emailSinteticoDeCuil, normalizarCuil } from '@/lib/cuil'
 import { leerEntornoServidor } from '@/lib/entorno'
+import { excedeLimiteCuilOIp } from '@/lib/limite-intentos'
 import { clienteServidor } from '@/lib/supabase/cliente-servidor'
 import { clienteServicio } from '@/lib/supabase/cliente-servicio'
 
@@ -52,6 +53,13 @@ export async function activarCuenta(
   if (!analisis.success) return conValores(analisis.error.issues[0].message)
 
   const { cuil, codigo, clave } = analisis.data
+
+  if (
+    await excedeLimiteCuilOIp('activar', cuil, { porCuil: 5, porIp: 20, ventanaMin: 15 })
+  ) {
+    return conValores('Demasiados intentos. Esperá unos minutos y probá de nuevo.')
+  }
+
   const servicio = clienteServicio()
 
   const { data: persona } = await servicio

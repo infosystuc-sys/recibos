@@ -20,5 +20,11 @@ export async function GET(req: Request) {
   await encolarRecordatorios(servicio, 7)
   const resumen = await procesarCola(servicio)
 
+  // Purga los registros de intentos viejos (rate limiting).
+  await servicio
+    .from('intentos')
+    .delete()
+    .lt('created_at', new Date(Date.now() - 86_400_000).toISOString())
+
   return Response.json({ ok: true, ...resumen })
 }

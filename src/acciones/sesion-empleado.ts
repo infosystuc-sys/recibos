@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 import { z } from 'zod'
 import { emailSinteticoDeCuil, normalizarCuil } from '@/lib/cuil'
 import { leerEntornoServidor } from '@/lib/entorno'
+import { excedeLimiteCuilOIp } from '@/lib/limite-intentos'
 import { clienteServidor } from '@/lib/supabase/cliente-servidor'
 import { clienteServicio } from '@/lib/supabase/cliente-servicio'
 
@@ -31,6 +32,11 @@ export async function ingresarEmpleado(
   if (!analisis.success) return conCuil(analisis.error.issues[0].message)
 
   const { cuil, clave } = analisis.data
+
+  if (await excedeLimiteCuilOIp('login', cuil, { porCuil: 10, porIp: 30, ventanaMin: 15 })) {
+    return conCuil('Demasiados intentos. Esperá unos minutos y probá de nuevo.')
+  }
+
   const entorno = leerEntornoServidor(process.env)
   const email = emailSinteticoDeCuil(cuil, entorno.EMPLEADO_EMAIL_DOMAIN)
 

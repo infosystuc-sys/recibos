@@ -272,6 +272,24 @@ export type Database = {
           },
         ]
       }
+      intentos: {
+        Row: {
+          clave: string
+          created_at: string
+          id: number
+        }
+        Insert: {
+          clave: string
+          created_at?: string
+          id?: number
+        }
+        Update: {
+          clave?: string
+          created_at?: string
+          id?: number
+        }
+        Relationships: []
+      }
       legajos: {
         Row: {
           activo: boolean
@@ -686,6 +704,10 @@ export type Database = {
         Returns: number
       }
       puede_operar: { Args: never; Returns: boolean }
+      registrar_intento: {
+        Args: { p_clave: string; p_ventana: string }
+        Returns: number
+      }
     }
     Enums: {
       canal_notificacion: "email" | "push" | "whatsapp"
