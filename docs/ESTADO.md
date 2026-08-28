@@ -1,7 +1,7 @@
 # Conforme — Estado del proyecto y cómo continuar
 
 > **Documento de traspaso.** Si estás retomando este proyecto en una conversación nueva, leé
-> esto primero y después el spec. Última actualización: 2026-08-28, commit `9b93be4`.
+> esto primero y después el spec. Última actualización: 2026-08-28, commit `328906e`.
 
 ---
 
@@ -42,9 +42,9 @@ RS_202604_1QA_680_201_20-27103275-8.pdf
 | | |
 |---|---|
 | Rama | `fase1a-admin-ingesta` (creada desde `main` en `4e4a815`) |
-| HEAD | `9b93be4` |
-| Commits en la rama | 35 |
-| Tests | **78 unitarios** (14 archivos) + **6 de integración RLS** + **3 E2E** de ingreso, todos verdes |
+| HEAD | `328906e` |
+| Commits en la rama | 37 |
+| Tests | **78 unitarios** + **10 de integración** (6 RLS + 4 publicación) + **3 E2E** de ingreso, todos verdes |
 | TypeScript | `npx tsc --noEmit` limpio, modo estricto |
 | Build | `npm run build` verde |
 | Sin subir | La rama **no** se pusheó a GitHub todavía |
@@ -71,7 +71,7 @@ RS_202604_1QA_680_201_20-27103275-8.pdf
 | `permisos.ts` | Matriz de roles `admin` / `operador` / `consulta` |
 | `entorno.ts` | Validación Zod de variables de entorno |
 
-**Base de datos** (`supabase/migrations/`) — los cinco archivos **ya se aplicaron y
+**Base de datos** (`supabase/migrations/`) — los seis archivos **ya se aplicaron y
 verificaron** en `twejfeghrujsqzzuzvtf` (ver §3):
 
 - `0001_esquema_base.sql` — empresas, personas, legajos, admin_usuarios, codigos_activacion
@@ -79,6 +79,7 @@ verificaron** en `twejfeghrujsqzzuzvtf` (ver §3):
 - `0003_operacion.sql` — notificaciones, push_subscriptions, eventos_auditoria, importaciones
 - `0004_storage.sql` — bucket privado `recibos`
 - `0005_rls.sql` — funciones auxiliares y 21 políticas RLS
+- `0006_publicar.sql` — función `publicar_liquidacion(uuid, uuid)`, transaccional
 
 **Clientes de Supabase** (`src/lib/supabase/`) — `tipos.ts` generado del esquema,
 `cliente-navegador.ts` / `cliente-servidor.ts` / `cliente-servicio.ts`.
@@ -103,7 +104,12 @@ de la Tarea 17).
 
 **Subida** — `src/acciones/subida.ts` (`prepararSubida`: liquidación borrador + URLs
 firmadas) y `src/lib/subida/subir-a-storage.ts` (`hashDeArchivo`, `subirArchivoFirmado` con
-reintentos). También sin usar hasta la pantalla de ingesta.
+reintentos).
+
+**Ingesta y publicación** — `src/acciones/liquidaciones.ts` (`datosCotejo`,
+`registrarRecibos`, `publicarLiquidacion`) y las pantallas `/admin/liquidaciones` (listado),
+`/admin/liquidaciones/ingesta` (flujo de 6 pasos) y `/admin/liquidaciones/[id]` (detalle +
+Publicar). `selector-carpeta` ganó una tercera vía: `<input webkitdirectory>`.
 
 **Verificación contra datos reales:** el parser reconoce los 28 PDFs de
 `D:\APP\RECIBOS\Ejemplo Delta 6` sin ignorar ninguno.
@@ -185,7 +191,7 @@ trampa #4); su limpieza es best-effort y acotada a los ids que crea.
 
 ## 4. Qué falta
 
-Del plan de 18 tareas, están completas **la 1 a la 16**. Falta:
+Del plan de 18 tareas, están completas **la 1 a la 17**. Falta solo la **18** (despliegue).
 
 | Tarea | Qué falta | Depende de |
 |---|---|---|
@@ -196,7 +202,7 @@ Del plan de 18 tareas, están completas **la 1 a la 16**. Falta:
 | ~~14~~ | ✅ Hecha. `acciones/codigos.ts`, `guardarEmpleado`, listado `/admin/empleados` con filtros + generación de códigos, ABM manual `/admin/empleados/nuevo`. Verificada end-to-end (`a1a979d`) | — |
 | ~~15~~ | ✅ Hecha. `carpeta/handle-persistido.ts` (IndexedDB), `componentes/selector-carpeta.tsx` (FS Access API + fallback de arrastre), `tipos/file-system-access.d.ts`. Verificada contra la carpeta real (`cc34697`) | — |
 | ~~16~~ | ✅ Hecha. `acciones/subida.ts` (`prepararSubida`), `lib/subida/subir-a-storage.ts` (hash + subida firmada con reintentos). Round-trip de Storage verificado (`9b93be4`) | — |
-| 17 | Completa: migración `0006_publicar.sql`, `registrarRecibos`, `publicarLiquidacion`, pantalla de ingesta | Tareas 10-16 |
+| ~~17~~ | ✅ Hecha. `0006_publicar.sql` (aplicada), `acciones/liquidaciones.ts`, pantallas `/admin/liquidaciones/{,ingesta,[id]}`. Flujo completo verificado end-to-end (`328906e`) | — |
 | 18 | Completa: README, push, proyecto en Vercel, variables, verificación de despliegue | Todo lo anterior |
 
 Después de la Fase 1A queda por planificar la **Fase 1B: el portal del empleado**
@@ -356,12 +362,15 @@ revisión queda limpia.
   misma carpeta: `extraer-brief.sh <plan> <numero> <destino>`. Es necesario porque el plan
   está en español y el script que trae la skill busca encabezados en inglés (`## Task N`).
 
-**El próximo paso concreto** es la **Tarea 17** (revisión y publicación del lote), completa:
-migración `supabase/migrations/0006_publicar.sql` (función `publicar_liquidacion`),
-`src/acciones/liquidaciones.ts` (`registrarRecibos`, `publicarLiquidacion`), pantallas
-`src/app/admin/liquidaciones/{page,ingesta/page,[id]/page}.tsx`, y
-`tests/integracion/publicar.test.ts`. Es la tarea que une todo: escaneo → coteo → subida →
-registro → publicación. Después queda la 18 (README + push + Vercel).
+**El próximo paso concreto** es la **Tarea 18** (despliegue): `README.md`, `vercel.json`
+(opcional; el proyecto no lo necesita), push de la rama, crear el proyecto en Vercel
+(`infosystuc-sys/recibos`), cargar las 4 variables de entorno en los 3 entornos, y las
+verificaciones post-deploy (redirección `/admin`→`/ingresar`, login, y **grep de
+`service_role` en el JS servido → 0 coincidencias**).
+
+Ojo: `main` en GitHub está vacío; la rama `fase1a-admin-ingesta` nunca se pusheó. El plan
+dice `git push -u origin main` — decidir con el usuario si se mergea a `main` primero o se
+pushea la rama. La CLI de Vercel y `gh` no están instaladas.
 
 Notas para retomar:
 
