@@ -1,7 +1,6 @@
 import type { ReactNode } from 'react'
 import Link from 'next/link'
 import { salir } from '@/acciones/sesion'
-import { puede } from '@/lib/permisos'
 import { exigirAdmin } from '@/lib/sesion'
 
 export default async function LayoutAdmin({ children }: { children: ReactNode }) {
@@ -16,9 +15,7 @@ export default async function LayoutAdmin({ children }: { children: ReactNode })
           </Link>
           <nav className="flex items-center gap-4 text-sm">
             <Link href="/admin/empresas">Empresas</Link>
-            {puede(admin.rol, 'operar') && (
-              <Link href="/admin/empleados/importar">Importar padrón</Link>
-            )}
+            <Link href="/admin/empleados">Empleados</Link>
             {admin.rol === 'admin' && <Link href="/admin/usuarios">Usuarios</Link>}
           </nav>
         </div>
