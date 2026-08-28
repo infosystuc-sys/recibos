@@ -3,6 +3,7 @@ import { formatearPeriodo } from '@/lib/periodo'
 import { exigirEmpleado } from '@/lib/sesion-empleado'
 import { clienteServidor } from '@/lib/supabase/cliente-servidor'
 import { ETIQUETA_TIPO, type TipoLiquidacion } from '@/lib/tango/parse-nombre-recibo'
+import Avisos from './avisos'
 
 interface Fila {
   id: string
@@ -45,6 +46,8 @@ export default async function MiInicio() {
   return (
     <section className="flex flex-col gap-6">
       <h1 className="text-2xl font-semibold">Mis recibos</h1>
+
+      <Avisos />
 
       {filas.length === 0 ? (
         <p className="text-base text-neutral-600 dark:text-neutral-400">
