@@ -1,8 +1,8 @@
 # Conforme — Estado del proyecto y cómo continuar
 
 > **Documento de traspaso.** Si estás retomando este proyecto en una conversación nueva, leé
-> esto primero y después el spec. Última actualización: 2026-08-28, commit `abd55e3`.
-> **Fase 1A completa (falta solo Vercel). Fase 1B en curso — ver §4.**
+> esto primero y después el spec. Última actualización: 2026-08-28, commit `1d579da`.
+> **Fase 1A completa (falta solo Vercel). Fase 1B completa. Fase 2 en curso — ver §4.**
 
 ---
 
@@ -43,10 +43,11 @@ RS_202604_1QA_680_201_20-27103275-8.pdf
 | | |
 |---|---|
 | Rama | `fase1a-admin-ingesta` (creada desde `main` en `4e4a815`) |
-| Rama principal | `main` — la de trabajo `fase1a-admin-ingesta` se mergeó por fast-forward. Fase 1B se commitea directo en `main`. |
-| HEAD | `abd55e3` |
-| Commits | 47 (más el `4e4a815` de base). Pusheados hasta `1bcfd56`; los de Fase 1B (`8eb669e`…`abd55e3`) **sin pushear**. |
-| Tests | **78 unitarios** + **13 de integración** (6 RLS + 4 publicación + 3 conformidad) + **3 E2E** de ingreso, todos verdes |
+| Rama principal | `main`. Fase 1B y Fase 2 se commitean directo en `main`. |
+| HEAD | `1d579da` |
+| Commits | 53 (más el `4e4a815` de base). **Pusheados solo hasta `1bcfd56`**; todo lo de Fase 1B/2 (`8eb669e`…`1d579da`) está sin pushear (GitHub pidió credenciales). |
+| Tests | **78 unitarios** + **13 de integración** + **3 E2E** de ingreso, todos verdes. Fase 1B/2 se verificaron con scripts E2E ad-hoc (ya borrados). |
+| Migraciones | **0001–0007 aplicadas.** 0007 agrega `intentos` + `registrar_intento`. |
 | TypeScript | `npx tsc --noEmit` limpio, modo estricto |
 | Build | `npm run build` verde |
 | GitHub | **`main` pusheado** a `infosystuc-sys/recibos` |
@@ -83,6 +84,7 @@ verificaron** en `twejfeghrujsqzzuzvtf` (ver §3):
 - `0004_storage.sql` — bucket privado `recibos`
 - `0005_rls.sql` — funciones auxiliares y 21 políticas RLS
 - `0006_publicar.sql` — función `publicar_liquidacion(uuid, uuid)`, transaccional
+- `0007_intentos.sql` — tabla `intentos` + `registrar_intento(text, interval)` (rate limiting)
 
 **Clientes de Supabase** (`src/lib/supabase/`) — `tipos.ts` generado del esquema,
 `cliente-navegador.ts` / `cliente-servidor.ts` / `cliente-servicio.ts`.
@@ -194,7 +196,9 @@ trampa #4); su limpieza es best-effort y acotada a los ids que crea.
 
 ## 4. Qué falta
 
-Del plan de 18 tareas, están completas **la 1 a la 17**. Falta solo la **18** (despliegue).
+**Fase 1A** (plan de 18 tareas): 1–17 completas, la 18 es solo el deploy en Vercel.
+**Fase 1B** (portal del empleado): completa. **Fase 2** (avisos): infraestructura hecha,
+falta Resend y algún pulido. Detalle abajo.
 
 | Tarea | Qué falta | Depende de |
 |---|---|---|
@@ -208,29 +212,43 @@ Del plan de 18 tareas, están completas **la 1 a la 17**. Falta solo la **18** (
 | ~~17~~ | ✅ Hecha. `0006_publicar.sql` (aplicada), `acciones/liquidaciones.ts`, pantallas `/admin/liquidaciones/{,ingesta,[id]}`. Flujo completo verificado end-to-end (`328906e`) | — |
 | 18 | **Solo Vercel.** README y push a `main` hechos. Falta: resolver el proyecto `recibos` que ya existe fuera del team, cargar las 4 variables en los 3 entornos, y verificar (redirección, login, grep de `service_role` = 0). Ver §7. | — |
 
-### Fase 1B — portal del empleado (en curso, sin plan formal)
+### Fase 1B — portal del empleado ✅ (sin plan formal, construida contra el spec §10-11)
 
-Se empezó a construir directamente contra el spec (`§10`, `§11`). Hecho y verificado
-end-to-end contra Supabase real:
+Todo verificado end-to-end contra Supabase real con scripts ad-hoc:
 
 | Parte | Archivos | Commit |
 |---|---|---|
-| Activación (CUIL + código → clave ≥8) y login por CUIL | `acciones/activacion.ts`, `acciones/sesion-empleado.ts`, `lib/sesion-empleado.ts`, `/activar`, `/mi/ingresar`, `proxy.ts` (protege `/mi`) | `8eb669e` |
-| Listado `/mi`, visor con iframe + URL firmada, conformidad con auditoría completa (hora, SHA-256 del PDF exacto, IP, UA, copia del texto legal), descarga gateada, comprobante PDF (`pdf-lib`) | `acciones/recibos-empleado.ts`, `/mi/(privado)/**` | `46dd731` |
+| Activación (CUIL + código → clave ≥8) y login por CUIL | `acciones/activacion.ts`, `acciones/sesion-empleado.ts`, `lib/sesion-empleado.ts`, `/activar`, `/mi/ingresar`, `proxy.ts` protege `/mi` | `8eb669e` |
+| Listado `/mi`, visor iframe + URL firmada, conformidad con auditoría completa, descarga gateada, comprobante PDF (`pdf-lib`) | `acciones/recibos-empleado.ts`, `/mi/(privado)/**` | `46dd731` |
 | Tablero de conformidad en `/admin/liquidaciones/[id]` (% conformado, pendientes, export CSV) | `[id]/page.tsx`, `[id]/seguimiento.csv/route.ts` | `ece84b6` |
 | Test de inmutabilidad de conformidades | `tests/integracion/conformidad.test.ts` | `abd55e3` |
+| Observaciones del empleado + gestión desde el panel (`/admin/observaciones`) | `acciones/observaciones.ts`, `/mi/(privado)/recibos/[id]/observaciones.tsx`, `/admin/observaciones/**` | `9b564a8` |
 
-`/` pasó a ser una landing («Soy empleado» / «Administración»).
+### Fase 2 — avisos y hardening (en curso)
 
-**Falta de la Fase 1B / Fase 2:**
+| Parte | Archivos | Commit |
+|---|---|---|
+| Cola de notificaciones: interfaz `CanalNotificacion` + adaptadores email (Resend), push (web-push/VAPID), whatsapp (inactivo). `encolarPublicacion` (desde `publicarLiquidacion`), `encolarRecordatorios` (3 y 7 días), `procesarCola` (backoff 1/2/4/8/16 min, tope 5). Cron `/api/cron/notificaciones` (Bearer `CRON_SECRET`), `vercel.json` horario. PWA: `manifest.ts`, `public/sw.js`, iconos, `/mi/avisos.tsx` | `src/lib/notificaciones/**`, `src/acciones/push.ts` | `1f49e7a` |
+| Rate limiting (`0007_intentos.sql` + `lib/limite-intentos.ts`) en `activarCuenta` (5/CUIL, 20/IP · 15 min) e `ingresarEmpleado` (10/CUIL, 30/IP). Panel `/admin/notificaciones` (estado de canales, stats, procesar a demanda). | `lib/limite-intentos.ts`, `/admin/notificaciones/**` | `1d579da` |
 
-- **Rate limiting** en login y activación (spec §260). No implementado.
-- «Recordar a los pendientes» y **PDF combinado de constancias** (necesitan el canal de
-  notificaciones → Fase 2).
-- **PWA instalable** + push (Fase 2).
-- **Observaciones** del empleado (spec las pone en Fase 2).
-- El label «Corregido — requiere nueva conformidad» es aproximado (usa `version > 1`); no
-  distingue si la v1 llegó a conformarse.
+**Estado de los canales:** email y push funcionan cuando se cargan las variables
+(`RESEND_API_KEY` + `EMAIL_FROM` con dominio verificado; `VAPID_*`). Hasta entonces la cola
+los marca inactivos y reintenta. `.env.local` ya tiene VAPID + `CRON_SECRET` + `APP_URL`
+generados; falta solo Resend. WhatsApp: adaptador inactivo (Fase 3).
+
+**Falta de la Fase 2 / Fase 3:**
+
+- **Resend**: cuenta + dominio verificado (SPF/DKIM) + `RESEND_API_KEY` / `EMAIL_FROM`.
+- **Serwist / cacheo offline** de la PWA (el SW actual es solo push).
+- **PDF combinado de constancias** (export del tablero; hoy solo CSV).
+- **Recuperación de clave por email autogestionada** (Fase 3; hoy el circuito es: el admin
+  genera un código nuevo).
+- **WhatsApp** (Fase 3): cuenta Meta Business + `WHATSAPP_*` + completar el adaptador.
+- Cron horario en `vercel.json`: en plan **Hobby** Vercel puede limitarlo a 1 vez/día. El
+  endpoint es invocable a mano (`/admin/notificaciones` → «Procesar cola ahora»).
+- El label «Corregido — requiere nueva conformidad» usa `version > 1`; no distingue si la
+  v1 llegó a conformarse.
+- Nav del panel: 6 links, en móvil envuelve feo. Falta un menú responsive.
 
 ---
 
@@ -408,23 +426,28 @@ revisión queda limpia.
   misma carpeta: `extraer-brief.sh <plan> <numero> <destino>`. Es necesario porque el plan
   está en español y el script que trae la skill busca encabezados en inglés (`## Task N`).
 
-**Lo que falta de la Tarea 18** (todo en Vercel; el código y el push ya están):
+**Lo que falta del deploy** (el código está; el push a `main` quedó a medias — GitHub pidió
+credenciales, hay que pushear `1bcfd56..1d579da` a mano):
 
 1. **Resolver el proyecto `recibos` en Vercel.** Ya existe uno con ese nombre pero no está
    en el team `infosystuc-4207's projects`. Desde el panel: o moverlo al team, o borrarlo y
    reimportarlo, o crear el del team con otro nombre. Debe quedar linkeado a
    `infosystuc-sys/recibos`, rama de producción `main`.
-2. **Cargar 4 variables** en Production, Preview y Development:
+2. **Cargar variables** en Production, Preview y Development. Mínimas para que arranque:
    `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`,
-   `SUPABASE_SERVICE_ROLE_KEY` (sin `NEXT_PUBLIC_`), `EMPLEADO_EMAIL_DOMAIN`.
-   Los valores están en `.env.local` local.
-3. **Verificar el deploy:** `/admin` redirige a `/ingresar`; login con
-   `taroriva5199@gmail.com` funciona; el listado de empresas carga; y en el JS servido
-   **no aparece `service_role`** (0 coincidencias — ya verificado sobre el build local).
+   `SUPABASE_SERVICE_ROLE_KEY` (sin `NEXT_PUBLIC_`), `EMPLEADO_EMAIL_DOMAIN`, `APP_URL`
+   (la URL de producción), `CRON_SECRET`, `VAPID_PUBLIC_KEY`,
+   `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`. Todas están en
+   `.env.local` (menos `APP_URL`, que hay que apuntar al dominio real). Para email:
+   `RESEND_API_KEY` + `EMAIL_FROM` cuando el dominio esté verificado en Resend.
+3. **Verificar el deploy:** `/` muestra la landing; `/admin` redirige a `/ingresar`; login
+   con `taroriva5199@gmail.com`; `/mi` redirige a `/mi/ingresar`; y en el JS servido **no
+   aparece `service_role`** (0 coincidencias — verificado sobre el build local).
+4. El cron `/api/cron/notificaciones` corre solo (Vercel Cron); en Hobby puede ser 1/día.
 
-**Después del deploy**, la Fase 1B sigue con: rate limiting en login/activación, y de ahí a
-la Fase 2 (notificaciones con Resend, PWA + push, observaciones del empleado, recordatorios
-por Vercel Cron). El hardening diferido de la Fase 1A (§5) es opcional y se puede intercalar.
+**Después del deploy:** verificar email con Resend, sumar Serwist (cacheo offline de la
+PWA), el PDF combinado de constancias, y el resto de la Fase 3. El hardening diferido de la
+Fase 1A (§5) es opcional y se puede intercalar.
 
 Notas para retomar:
 
@@ -441,11 +464,13 @@ Notas para retomar:
 
 ```bash
 npm test                  # tests unitarios (78)
-npm run test:integracion  # RLS (6) — cargar antes: set -a; . ./.env.local; set +a  (bash)
-npm run test:e2e          # Playwright — 3 casos de ingreso, verdes. Misma carga de vars.
-                          # Tareas 12 y 13 se verificaron con scripts ad-hoc (ya borrados),
-                          # no hay E2E permanente para empresas/usuarios/padrón todavía.
+npm run test:integracion  # integración (13) — cargar antes: set -a; . ./.env.local; set +a  (bash)
+npm run test:e2e          # Playwright — 3 casos de ingreso admin, verdes. Misma carga de vars.
+                          # El resto (Tareas 12-17, Fase 1B, Fase 2) se verificó con scripts
+                          # E2E ad-hoc ya borrados; no hay E2E permanente para eso todavía.
 npm run build             # build de producción
+# procesar la cola de avisos a mano (dev):
+curl -H "Authorization: Bearer $CRON_SECRET" localhost:3000/api/cron/notificaciones
 npm run dev               # servidor de desarrollo
 npm run tipos             # regenerar tipos desde el esquema de Supabase
 npx tsc --noEmit          # chequeo de tipos
