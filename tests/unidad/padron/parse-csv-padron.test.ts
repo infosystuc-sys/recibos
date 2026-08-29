@@ -23,6 +23,27 @@ describe('parsearCsvPadron', () => {
     ])
   })
 
+  it('arma "Apellido, Nombre" con las columnas apellido y nombre separadas', () => {
+    const { filas, errores } = parsearCsvPadron(
+      'legajo;apellido;nombre;cuil;mail;celular\n201;Pérez;Ana;20-27103275-8;ana@x.com;3814000000',
+    )
+    expect(errores).toEqual([])
+    expect(filas[0]).toMatchObject({
+      legajo: 201,
+      apellidoNombre: 'Pérez, Ana',
+      email: 'ana@x.com',
+      telefono: '3814000000',
+    })
+  })
+
+  it('acepta la plantilla con acentos y espacios en los encabezados', () => {
+    const { filas, errores } = parsearCsvPadron(
+      'Número de legajo;Apellido;Nombre;CUIL;Mail;Celular\n7;Gómez;Luis;27-20012949-6;;',
+    )
+    expect(errores).toEqual([])
+    expect(filas[0]).toMatchObject({ legajo: 7, apellidoNombre: 'Gómez, Luis', email: null, telefono: null })
+  })
+
   it('acepta coma como separador', () => {
     const { filas } = parsearCsvPadron(
       'legajo,cuil,apellido_nombre\n201,20271032758,"Pérez, Ana"',

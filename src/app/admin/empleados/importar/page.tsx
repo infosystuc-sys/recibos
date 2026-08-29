@@ -21,7 +21,21 @@ export default async function PaginaImportarPadron() {
         <span className="text-neutral-400">/</span>
         <span>Importar padrón</span>
       </div>
-      <h1 className="text-xl font-semibold">Importar padrón</h1>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h1 className="text-xl font-semibold">Importar padrón</h1>
+        <Link
+          href="/admin/empleados/importar/plantilla-padron"
+          prefetch={false}
+          className="text-sm underline"
+        >
+          Descargar plantilla
+        </Link>
+      </div>
+
+      <p className="text-sm text-neutral-600 dark:text-neutral-400">
+        La plantilla trae las columnas: número de legajo, apellido, nombre, CUIL, mail y
+        celular. También sirve un CSV de Tango con una sola columna «apellido y nombre».
+      </p>
 
       {empresas && empresas.length > 0 ? (
         <ImportadorPadron empresas={empresas} />

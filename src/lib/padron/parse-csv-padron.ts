@@ -17,20 +17,36 @@ export interface ErrorFila {
   contenido: string
 }
 
-const ALIAS: Record<string, keyof FilaPadron> = {
+/** Además de las columnas de FilaPadron, el CSV puede traer apellido y nombre por separado. */
+type ColumnaCruda = keyof FilaPadron | 'apellido' | 'nombre'
+
+const ALIAS: Record<string, ColumnaCruda> = {
   legajo: 'legajo',
   nro_legajo: 'legajo',
+  n_legajo: 'legajo',
+  legajo_nro: 'legajo',
   numero: 'legajo',
+  numero_de_legajo: 'legajo',
   cuil: 'cuil',
   cuit: 'cuil',
   apellido_nombre: 'apellidoNombre',
   apellido_y_nombre: 'apellidoNombre',
-  nombre: 'apellidoNombre',
+  apellido: 'apellido',
+  apellidos: 'apellido',
+  nombre: 'nombre',
+  nombres: 'nombre',
   email: 'email',
+  mail: 'email',
   correo: 'email',
+  correo_electronico: 'email',
+  e_mail: 'email',
   telefono: 'telefono',
   celular: 'telefono',
+  cel: 'telefono',
+  movil: 'telefono',
+  tel: 'telefono',
   sector: 'sector',
+  area: 'sector',
   activo: 'activo',
 }
 
@@ -82,7 +98,7 @@ export function parsearCsvPadron(texto: string): { filas: FilaPadron[]; errores:
   const columnas = encabezados.map((h) => ALIAS[h] ?? null)
 
   const errores: ErrorFila[] = []
-  for (const obligatoria of ['legajo', 'cuil', 'apellidoNombre'] as const) {
+  for (const obligatoria of ['legajo', 'cuil'] as const) {
     if (!columnas.includes(obligatoria)) {
       errores.push({
         linea: 0,
@@ -90,6 +106,17 @@ export function parsearCsvPadron(texto: string): { filas: FilaPadron[]; errores:
         contenido: primera,
       })
     }
+  }
+  const tieneNombre =
+    columnas.includes('apellidoNombre') ||
+    columnas.includes('apellido') ||
+    columnas.includes('nombre')
+  if (!tieneNombre) {
+    errores.push({
+      linea: 0,
+      motivo: 'Falta el nombre: agregá "apellido" y "nombre" (o una sola columna "apellido_nombre")',
+      contenido: primera,
+    })
   }
   if (errores.length > 0) return { filas: [], errores }
 
@@ -103,7 +130,7 @@ export function parsearCsvPadron(texto: string): { filas: FilaPadron[]; errores:
 
     const numeroLinea = i - indiceCabecera + 1
     const campos = partirLinea(linea, separador)
-    const crudo: Partial<Record<keyof FilaPadron, string>> = {}
+    const crudo: Partial<Record<ColumnaCruda, string>> = {}
     columnas.forEach((columna, indice) => {
       if (columna) crudo[columna] = campos[indice] ?? ''
     })
@@ -124,7 +151,13 @@ export function parsearCsvPadron(texto: string): { filas: FilaPadron[]; errores:
       continue
     }
 
-    const apellidoNombre = (crudo.apellidoNombre ?? '').trim()
+    // "apellido_nombre" tal cual, o se arma "Apellido, Nombre" con las columnas
+    // separadas (el formato que usa el resto del sistema).
+    const apellido = (crudo.apellido ?? '').trim()
+    const nombre = (crudo.nombre ?? '').trim()
+    const apellidoNombre =
+      (crudo.apellidoNombre ?? '').trim() ||
+      (apellido && nombre ? `${apellido}, ${nombre}` : apellido || nombre)
     if (!apellidoNombre) {
       errores.push({ linea: numeroLinea, motivo: 'Falta el apellido y nombre', contenido: linea })
       continue
