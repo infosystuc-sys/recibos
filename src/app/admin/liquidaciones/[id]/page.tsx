@@ -7,7 +7,6 @@ import { exigirAdmin } from '@/lib/sesion'
 import { clienteServidor } from '@/lib/supabase/cliente-servidor'
 import { ETIQUETA_TIPO } from '@/lib/tango/parse-nombre-recibo'
 import PublicarBoton from './publicar-boton'
-import RecordarPendientes from './recordar'
 
 interface Params {
   params: Promise<{ id: string }>
@@ -125,11 +124,6 @@ export default async function PaginaLiquidacion({ params, searchParams }: Params
               Solo pendientes ({vigentes.length - conformados.length})
             </Link>
           </div>
-
-          {puede(admin.rol, 'operar') && conformados.length < vigentes.length && (
-            <RecordarPendientes liquidacionId={id} />
-          )}
-
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="text-left text-neutral-500">

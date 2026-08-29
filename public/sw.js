@@ -1,36 +1,33 @@
-// Service worker mínimo de Conforme: solo push. El cacheo offline (Serwist)
-// se puede sumar después sin cambiar este contrato.
+// Service worker mínimo: hace la app instalable y da un fallback offline para
+// la navegación. No cachea PDFs ni respuestas de la API (siempre van a la red).
+const CACHE = 'conforme-v1'
+const SHELL = ['/mi', '/mi/ingresar', '/activar', '/icono-192.png', '/icono-512.png']
 
-self.addEventListener('install', () => self.skipWaiting())
-self.addEventListener('activate', (evento) => evento.waitUntil(self.clients.claim()))
+self.addEventListener('install', (e) => {
+  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting()))
+})
 
-self.addEventListener('push', (evento) => {
-  let datos = {}
-  try {
-    datos = evento.data ? evento.data.json() : {}
-  } catch {
-    datos = { title: 'Conforme', body: evento.data ? evento.data.text() : '' }
-  }
-  const titulo = datos.title || 'Conforme'
-  evento.waitUntil(
-    self.registration.showNotification(titulo, {
-      body: datos.body || '',
-      icon: '/icono-192.png',
-      badge: '/icono-192.png',
-      data: { url: datos.url || '/mi' },
-    }),
+self.addEventListener('activate', (e) => {
+  e.waitUntil(
+    caches.keys().then((claves) =>
+      Promise.all(claves.filter((k) => k !== CACHE).map((k) => caches.delete(k))),
+    ).then(() => self.clients.claim()),
   )
 })
 
-self.addEventListener('notificationclick', (evento) => {
-  evento.notification.close()
-  const destino = (evento.notification.data && evento.notification.data.url) || '/mi'
-  evento.waitUntil(
-    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientes) => {
-      for (const cliente of clientes) {
-        if (cliente.url.includes(destino) && 'focus' in cliente) return cliente.focus()
-      }
-      return self.clients.openWindow(destino)
-    }),
-  )
+self.addEventListener('fetch', (e) => {
+  const req = e.request
+  if (req.method !== 'GET') return
+  const url = new URL(req.url)
+  if (url.origin !== self.location.origin) return
+
+  // Navegación: red primero, y si no hay, la última versión cacheada de /mi.
+  if (req.mode === 'navigate') {
+    e.respondWith(fetch(req).catch(() => caches.match('/mi')))
+    return
+  }
+  // Estáticos del shell: cache primero.
+  if (SHELL.some((p) => url.pathname === p) || url.pathname.startsWith('/_next/static/')) {
+    e.respondWith(caches.match(req).then((hit) => hit || fetch(req)))
+  }
 })

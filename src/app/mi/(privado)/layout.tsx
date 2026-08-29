@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import Link from 'next/link'
 import { salirEmpleado } from '@/acciones/sesion-empleado'
+import RegistrarSW from '@/componentes/registrar-sw'
 import { exigirEmpleado } from '@/lib/sesion-empleado'
 
 export default async function LayoutEmpleado({ children }: { children: ReactNode }) {
@@ -8,6 +9,7 @@ export default async function LayoutEmpleado({ children }: { children: ReactNode
 
   return (
     <div className="min-h-dvh">
+      <RegistrarSW />
       <header className="flex items-center justify-between border-b px-4 py-3">
         <Link href="/mi" className="text-lg font-semibold">
           Conforme

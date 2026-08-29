@@ -2,7 +2,6 @@
 
 import { revalidatePath } from 'next/cache'
 import { registrarEvento } from '@/lib/auditoria'
-import { encolarPublicacion } from '@/lib/notificaciones/cola'
 import { exigirAdmin } from '@/lib/sesion'
 import { clienteServicio } from '@/lib/supabase/cliente-servicio'
 import type { LegajoPadron, ReciboExistente } from '@/lib/tango/cotejar-lote'
@@ -142,14 +141,7 @@ export async function publicarLiquidacion(
     detalle: { publicados: data },
   })
 
-  // Encola los avisos de publicación. Que falle esto no debe tumbar la
-  // publicación, que es lo importante: la cola se reintenta por cron.
-  try {
-    await encolarPublicacion(supabase, liquidacionId)
-  } catch (e) {
-    console.error('No se pudieron encolar los avisos de publicación', e)
-  }
-
+  // Sin avisos: el empleado ve el recibo al entrar a la app.
   revalidatePath('/admin/liquidaciones')
   return { publicados: data as number }
 }

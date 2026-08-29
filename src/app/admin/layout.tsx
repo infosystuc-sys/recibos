@@ -8,7 +8,6 @@ const ENLACES = [
   { href: '/admin/empleados', texto: 'Empleados' },
   { href: '/admin/liquidaciones', texto: 'Liquidaciones' },
   { href: '/admin/observaciones', texto: 'Observaciones' },
-  { href: '/admin/notificaciones', texto: 'Notificaciones' },
 ]
 
 export default async function LayoutAdmin({ children }: { children: ReactNode }) {
