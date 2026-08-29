@@ -44,6 +44,15 @@ describe('parsearCsvPadron', () => {
     expect(filas[0]).toMatchObject({ legajo: 7, apellidoNombre: 'Gómez, Luis', email: null, telefono: null })
   })
 
+  it('acepta tabulador como separador (Excel guardado como texto)', () => {
+    const csv =
+      'Número de legajo\tApellido\tNombre\tCUIL\tMail\tCelular\n' +
+      '1\tGonzález\tAlejandra\t27-20012949-6\tag@x.com\t'
+    const { filas, errores } = parsearCsvPadron(csv)
+    expect(errores).toEqual([])
+    expect(filas[0]).toMatchObject({ legajo: 1, apellidoNombre: 'González, Alejandra', email: 'ag@x.com' })
+  })
+
   it('acepta coma como separador', () => {
     const { filas } = parsearCsvPadron(
       'legajo,cuil,apellido_nombre\n201,20271032758,"Pérez, Ana"',

@@ -88,12 +88,20 @@ function normalizarEncabezado(valor: string): string {
     .replace(/\s+/g, '_')
 }
 
+/** El que más aparezca en la cabecera entre `;`, tab y `,` (Excel usa cualquiera). */
+function detectarSeparador(cabecera: string): string {
+  const conteo: Record<string, number> = { ';': 0, '\t': 0, ',': 0 }
+  for (const c of cabecera) if (c in conteo) conteo[c]++
+  const [mejor, veces] = Object.entries(conteo).sort((a, b) => b[1] - a[1])[0]
+  return veces > 0 ? mejor : ';'
+}
+
 export function parsearCsvPadron(texto: string): { filas: FilaPadron[]; errores: ErrorFila[] } {
   const lineas = texto.replace(/^\uFEFF/, '').split(/\r?\n/)
   const primera = lineas.find((l) => l.trim() !== '')
   if (!primera) return { filas: [], errores: [{ linea: 0, motivo: 'El archivo está vacío', contenido: '' }] }
 
-  const separador = (primera.match(/;/g)?.length ?? 0) >= (primera.match(/,/g)?.length ?? 0) ? ';' : ','
+  const separador = detectarSeparador(primera)
   const encabezados = partirLinea(primera, separador).map(normalizarEncabezado)
   const columnas = encabezados.map((h) => ALIAS[h] ?? null)
 

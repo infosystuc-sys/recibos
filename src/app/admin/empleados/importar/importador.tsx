@@ -10,6 +10,21 @@ interface Empresa {
   razon_social: string
 }
 
+/** Lee el archivo como UTF-8; si tiene bytes inválidos (CSV guardado como
+ *  ANSI/Windows-1252 desde Excel), reintenta con esa codificación. */
+async function leerTexto(archivo: File): Promise<string> {
+  const buf = await archivo.arrayBuffer()
+  try {
+    return new TextDecoder('utf-8', { fatal: true }).decode(buf)
+  } catch {
+    try {
+      return new TextDecoder('windows-1252').decode(buf)
+    } catch {
+      return new TextDecoder('utf-8').decode(buf) // último recurso, tolerante
+    }
+  }
+}
+
 export default function ImportadorPadron({ empresas }: { empresas: Empresa[] }) {
   const [empresaId, setEmpresaId] = useState(empresas[0]?.id ?? '')
   const [nombreArchivo, setNombreArchivo] = useState('')
@@ -29,7 +44,7 @@ export default function ImportadorPadron({ empresas }: { empresas: Empresa[] }) 
       setNombreArchivo('')
       return
     }
-    const texto = await archivo.text()
+    const texto = await leerTexto(archivo)
     const parseado = parsearCsvPadron(texto)
     setFilas(parseado.filas)
     setErrores(parseado.errores)
