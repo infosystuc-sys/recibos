@@ -12,7 +12,7 @@ export function DescargarRecibo({ reciboId, habilitado }: { reciboId: string; ha
       <button
         type="button"
         disabled
-        className="rounded-lg border px-4 py-3 text-base text-neutral-400"
+        className="rounded-lg border px-4 py-3 text-base text-texto-tenue"
         title="Disponible al prestar conformidad"
       >
         Descargar (disponible al conformar)
@@ -33,12 +33,12 @@ export function DescargarRecibo({ reciboId, habilitado }: { reciboId: string; ha
             else window.location.href = r.url
           })
         }}
-        className="rounded-lg bg-blue-900 px-4 py-3 text-base font-medium text-white disabled:opacity-50"
+        className="rounded-lg bg-marron px-4 py-3 text-base font-medium text-white disabled:opacity-50"
       >
         {pendiente ? 'Preparando…' : 'Descargar recibo'}
       </button>
       {error && (
-        <p role="alert" className="text-sm text-red-600">
+        <p role="alert" className="text-sm text-error">
           {error}
         </p>
       )}

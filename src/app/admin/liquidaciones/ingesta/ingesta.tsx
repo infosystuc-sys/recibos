@@ -35,9 +35,9 @@ function ordenarDiagnosticos(ds: Diagnostico[]): Diagnostico[] {
 }
 
 const COLOR: Record<Diagnostico['severidad'], string> = {
-  bloqueante: 'border-red-300 bg-red-50 text-red-800',
-  advertencia: 'border-amber-300 bg-amber-50 text-amber-800',
-  informativo: 'border-neutral-200 bg-neutral-50 text-neutral-600',
+  bloqueante: 'border-red-300 bg-error-fondo text-red-800',
+  advertencia: 'border-amber-300 bg-alerta-fondo text-amber-800',
+  informativo: 'border-neutral-200 bg-neutral-50 text-texto-suave',
 }
 
 export default function Ingesta({ empresas }: { empresas: Empresa[] }) {
@@ -222,7 +222,7 @@ export default function Ingesta({ empresas }: { empresas: Empresa[] }) {
             reiniciarDesdeEscaneo({ archivos: [], ignorados: [] })
             setEscaneo(null)
           }}
-          className="rounded border px-3 py-2 text-sm"
+          className="rounded-lg border border-borde bg-superficie px-3 py-2 text-sm"
         >
           {empresas.map((e) => (
             <option key={e.id} value={e.id}>
@@ -239,7 +239,7 @@ export default function Ingesta({ empresas }: { empresas: Empresa[] }) {
       {escaneo && (
         <Paso n={3} titulo="Lotes">
           {lotes.length === 0 ? (
-            <p className="text-sm text-neutral-600">El escaneo no encontró recibos de Tango.</p>
+            <p className="text-sm text-texto-suave">El escaneo no encontró recibos de Tango.</p>
           ) : (
             <div className="flex flex-wrap gap-3">
               {lotes.map((l) => {
@@ -250,11 +250,11 @@ export default function Ingesta({ empresas }: { empresas: Empresa[] }) {
                     type="button"
                     onClick={() => elegirLote(l)}
                     className={`rounded border px-4 py-3 text-left text-sm ${
-                      clave === claveElegida ? 'border-blue-600 bg-blue-50' : 'border-neutral-300'
+                      clave === claveElegida ? 'border-blue-600 bg-blue-50' : 'border-borde'
                     }`}
                   >
                     <div className="font-medium">{describirLote(l)}</div>
-                    <div className="text-neutral-500">{l.archivos.length} recibos</div>
+                    <div className="text-texto-suave">{l.archivos.length} recibos</div>
                   </button>
                 )
               })}
@@ -266,16 +266,16 @@ export default function Ingesta({ empresas }: { empresas: Empresa[] }) {
       {claveElegida && (
         <Paso n={4} titulo="Cotejo contra el padrón">
           {cotejando ? (
-            <p className="text-sm text-neutral-600">Calculando hashes y cotejando…</p>
+            <p className="text-sm text-texto-suave">Calculando hashes y cotejando…</p>
           ) : cotejo ? (
             <div className="flex flex-col gap-3">
               {cotejo.hayBloqueantes && (
-                <p className="text-sm font-semibold text-red-700">
+                <p className="text-sm font-semibold text-error">
                   Hay problemas bloqueantes. Resolvelos antes de subir.
                 </p>
               )}
               {diagnosticos.length === 0 ? (
-                <p className="text-sm text-green-700">Sin observaciones. Todo listo para subir.</p>
+                <p className="text-sm text-exito">Sin observaciones. Todo listo para subir.</p>
               ) : (
                 <ul className="flex flex-col gap-2">
                   {diagnosticos.map((d, i) => (
@@ -295,15 +295,15 @@ export default function Ingesta({ empresas }: { empresas: Empresa[] }) {
       {cotejo && !cotejo.hayBloqueantes && (
         <Paso n={5} titulo="Subida">
           {registro ? (
-            <p className="text-sm text-green-700">
+            <p className="text-sm text-exito">
               {registro.registrados} recibo(s) registrado(s).
               {fallidos.length > 0 && (
-                <span className="text-red-700"> {fallidos.length} fallaron: {fallidos.join(', ')}</span>
+                <span className="text-error"> {fallidos.length} fallaron: {fallidos.join(', ')}</span>
               )}
             </p>
           ) : (
             <div className="flex flex-col gap-2">
-              <p className="text-sm text-neutral-600">
+              <p className="text-sm text-texto-suave">
                 Se subirán <strong>{cotejo.publicables.length}</strong> archivo(s).
                 {yaSubidos > 0 && <> {yaSubidos} ya estaban cargados y se saltean.</>}
                 {reemplazos > 0 && <> {reemplazos} son reemplazo de una versión anterior.</>}
@@ -317,7 +317,7 @@ export default function Ingesta({ empresas }: { empresas: Empresa[] }) {
                 type="button"
                 onClick={subirYRegistrar}
                 disabled={subiendo || cotejo.publicables.length === 0}
-                className="self-start rounded bg-blue-900 px-4 py-2 text-sm text-white disabled:opacity-50"
+                className="self-start rounded bg-marron px-4 py-2 text-sm text-white disabled:opacity-50"
               >
                 Subir
               </button>
@@ -329,7 +329,7 @@ export default function Ingesta({ empresas }: { empresas: Empresa[] }) {
       {registro && (
         <Paso n={6} titulo="Publicación">
           {publicado !== null ? (
-            <p className="text-sm font-semibold text-green-700">
+            <p className="text-sm font-semibold text-exito">
               Liquidación publicada · {publicado} recibo(s) vigente(s). Los empleados ya pueden verlos.
             </p>
           ) : (
@@ -337,7 +337,7 @@ export default function Ingesta({ empresas }: { empresas: Empresa[] }) {
               type="button"
               onClick={publicar}
               disabled={publicando}
-              className="self-start rounded bg-green-700 px-4 py-2 text-sm text-white disabled:opacity-50"
+              className="self-start rounded bg-exito px-4 py-2 text-sm text-white disabled:opacity-50"
             >
               {publicando ? 'Publicando…' : 'Publicar'}
             </button>
@@ -346,7 +346,7 @@ export default function Ingesta({ empresas }: { empresas: Empresa[] }) {
       )}
 
       {error && (
-        <p role="alert" className="text-sm text-red-600">
+        <p role="alert" className="text-sm text-error">
           {error}
         </p>
       )}
@@ -357,7 +357,7 @@ export default function Ingesta({ empresas }: { empresas: Empresa[] }) {
 function Paso({ n, titulo, children }: { n: number; titulo: string; children: React.ReactNode }) {
   return (
     <section className="flex flex-col gap-3">
-      <h2 className="text-sm font-semibold text-neutral-500">
+      <h2 className="text-sm font-semibold text-texto-suave">
         {n}. {titulo}
       </h2>
       {children}

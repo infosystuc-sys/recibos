@@ -14,11 +14,11 @@ export default async function PaginaEmpresas() {
   return (
     <section className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold">Empresas</h1>
+        <h1 className="text-2xl">Empresas</h1>
         {admin.rol === 'admin' && (
           <Link
             href="/admin/empresas/nueva"
-            className="rounded bg-blue-900 px-3 py-2 text-sm text-white"
+            className="inline-flex items-center rounded-lg bg-marron px-3.5 py-2 text-sm font-medium text-white hover:bg-marron-hover"
           >
             Nueva empresa
           </Link>
@@ -27,7 +27,7 @@ export default async function PaginaEmpresas() {
 
       {empresas?.length ? (
         <table className="w-full text-sm">
-          <thead className="text-left text-neutral-500">
+          <thead className="border-b border-borde text-left text-xs uppercase tracking-wide text-texto-tenue">
             <tr>
               <th className="py-2">Razón social</th>
               <th>CUIT</th>
@@ -36,7 +36,7 @@ export default async function PaginaEmpresas() {
           </thead>
           <tbody>
             {empresas.map((e) => (
-              <tr key={e.id} className="border-t">
+              <tr key={e.id} className="border-t border-borde-suave">
                 <td className="py-2">{e.razon_social}</td>
                 <td>{formatearCuil(e.cuit)}</td>
                 <td>{e.activa ? 'Activa' : 'Inactiva'}</td>
@@ -45,7 +45,7 @@ export default async function PaginaEmpresas() {
           </tbody>
         </table>
       ) : (
-        <p className="text-sm text-neutral-600">
+        <p className="text-sm text-texto-suave">
           Todavía no hay empresas cargadas. Creá la primera para poder importar su padrón.
         </p>
       )}

@@ -53,17 +53,17 @@ export default async function PaginaNuevoEmpleado({ searchParams }: Params) {
         <Link href={`/admin/empleados?empresa=${empresaId}`} className="underline">
           Empleados
         </Link>
-        <span className="text-neutral-400">/</span>
+        <span className="text-texto-tenue">/</span>
         <span>{edicion ? `Editar legajo ${inicial.legajo}` : 'Nuevo'}</span>
       </div>
-      <h1 className="text-xl font-semibold">
+      <h1 className="text-2xl">
         {edicion ? 'Editar empleado' : 'Nuevo empleado'}
       </h1>
 
       {empresas && empresas.length > 0 ? (
         <FormularioEmpleado empresas={empresas} inicial={inicial} edicion={edicion} />
       ) : (
-        <p className="text-sm text-neutral-600">
+        <p className="text-sm text-texto-suave">
           Primero cargá una empresa en{' '}
           <Link href="/admin/empresas" className="underline">
             Empresas

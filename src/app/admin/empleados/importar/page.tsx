@@ -18,11 +18,11 @@ export default async function PaginaImportarPadron() {
         <Link href="/admin/empleados" className="underline">
           Empleados
         </Link>
-        <span className="text-neutral-400">/</span>
+        <span className="text-texto-tenue">/</span>
         <span>Importar padrón</span>
       </div>
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="text-xl font-semibold">Importar padrón</h1>
+        <h1 className="text-2xl">Importar padrón</h1>
         <Link
           href="/admin/empleados/importar/plantilla-padron"
           prefetch={false}
@@ -32,7 +32,7 @@ export default async function PaginaImportarPadron() {
         </Link>
       </div>
 
-      <p className="text-sm text-neutral-600 dark:text-neutral-400">
+      <p className="text-sm text-texto-suave">
         La plantilla trae las columnas: número de legajo, apellido, nombre, CUIL, mail y
         celular. También sirve un CSV de Tango con una sola columna «apellido y nombre».
       </p>
@@ -40,7 +40,7 @@ export default async function PaginaImportarPadron() {
       {empresas && empresas.length > 0 ? (
         <ImportadorPadron empresas={empresas} />
       ) : (
-        <p className="text-sm text-neutral-600">
+        <p className="text-sm text-texto-suave">
           Primero cargá una empresa en{' '}
           <Link href="/admin/empresas" className="underline">
             Empresas

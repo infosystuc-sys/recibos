@@ -27,9 +27,9 @@ export default function GenerarCodigo({
 
   if (codigo) {
     return (
-      <div className="flex flex-col gap-1 rounded border-2 border-amber-400 bg-amber-50 p-3">
+      <div className="flex flex-col gap-1 rounded-lg border border-borde-2 border-amber-400 bg-alerta-fondo p-3">
         <span className="text-lg font-bold tracking-widest">{codigo}</span>
-        <span className="text-xs font-semibold text-amber-800">
+        <span className="text-xs font-semibold text-alerta">
           Anotalo ahora: no se puede volver a ver
         </span>
         <button
@@ -43,7 +43,7 @@ export default function GenerarCodigo({
               () => setCopiado(false),
             )
           }}
-          className="self-start text-xs text-blue-900 underline"
+          className="self-start text-xs text-acento-oscuro underline"
         >
           {copiado ? 'Copiado' : 'Copiar'}
         </button>
@@ -57,7 +57,7 @@ export default function GenerarCodigo({
         type="button"
         onClick={generar}
         disabled={pendiente}
-        className="self-start text-sm text-blue-900 underline disabled:opacity-50"
+        className="self-start text-sm text-acento-oscuro underline disabled:opacity-50"
       >
         {pendiente
           ? 'Generando…'
@@ -66,7 +66,7 @@ export default function GenerarCodigo({
             : 'Generar código'}
       </button>
       {error && (
-        <p role="alert" className="text-sm text-red-600">
+        <p role="alert" className="text-sm text-error">
           {error}
         </p>
       )}

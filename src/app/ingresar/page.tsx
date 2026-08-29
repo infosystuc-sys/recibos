@@ -2,53 +2,45 @@
 
 import { useActionState } from 'react'
 import { ingresarAdmin } from '@/acciones/sesion'
+import { Marca } from '@/componentes/logo'
+import { Alerta, BotonPrimario, Campo, claseInput } from '@/componentes/ui'
 
 export default function PaginaIngresar() {
   const [error, accion, pendiente] = useActionState(ingresarAdmin, null)
 
   return (
-    <main className="mx-auto flex min-h-dvh max-w-sm flex-col justify-center gap-6 p-6">
-      <div>
-        <h1 className="text-2xl font-semibold">Conforme</h1>
-        <p className="text-sm text-neutral-600">Panel de administración</p>
+    <main className="mx-auto flex min-h-dvh max-w-sm flex-col justify-center gap-7 p-6">
+      <div className="flex flex-col gap-3">
+        <Marca />
+        <p className="text-sm text-texto-suave">Panel de administración</p>
       </div>
 
       <form action={accion} className="flex flex-col gap-4">
-        <label className="flex flex-col gap-1 text-sm">
-          Email
+        <Campo etiqueta="Email">
           <input
             name="email"
             type="email"
             required
             autoComplete="username"
-            className="rounded border px-3 py-2"
+            className={claseInput}
           />
-        </label>
+        </Campo>
 
-        <label className="flex flex-col gap-1 text-sm">
-          Contraseña
+        <Campo etiqueta="Contraseña">
           <input
             name="clave"
             type="password"
             required
             autoComplete="current-password"
-            className="rounded border px-3 py-2"
+            className={claseInput}
           />
-        </label>
+        </Campo>
 
-        {error && (
-          <p role="alert" className="text-sm text-red-600">
-            {error}
-          </p>
-        )}
+        {error && <Alerta>{error}</Alerta>}
 
-        <button
-          type="submit"
-          disabled={pendiente}
-          className="rounded bg-blue-900 px-4 py-2 text-white disabled:opacity-50"
-        >
+        <BotonPrimario type="submit" disabled={pendiente} className="mt-1">
           {pendiente ? 'Ingresando…' : 'Ingresar'}
-        </button>
+        </BotonPrimario>
       </form>
     </main>
   )

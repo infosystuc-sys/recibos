@@ -11,10 +11,10 @@ export default async function PaginaNuevaEmpresa() {
         <Link href="/admin/empresas" className="underline">
           Empresas
         </Link>
-        <span className="text-neutral-400">/</span>
+        <span className="text-texto-tenue">/</span>
         <span>Nueva</span>
       </div>
-      <h1 className="text-xl font-semibold">Nueva empresa</h1>
+      <h1 className="text-2xl">Nueva empresa</h1>
       <FormularioNuevaEmpresa />
     </section>
   )

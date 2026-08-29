@@ -13,7 +13,7 @@ export default function FormularioNuevaEmpresa() {
     <form action={accion} className="flex max-w-lg flex-col gap-4">
       <label className="flex flex-col gap-1 text-sm">
         Razón social
-        <input name="razonSocial" required className="rounded border px-3 py-2" />
+        <input name="razonSocial" required className="rounded-lg border border-borde bg-superficie px-3 py-2" />
       </label>
 
       <label className="flex flex-col gap-1 text-sm">
@@ -23,13 +23,13 @@ export default function FormularioNuevaEmpresa() {
           required
           inputMode="numeric"
           placeholder="30-71234567-1"
-          className="rounded border px-3 py-2"
+          className="rounded-lg border border-borde bg-superficie px-3 py-2"
         />
       </label>
 
       <label className="flex flex-col gap-1 text-sm">
         Nombre corto
-        <input name="nombreCorto" required className="rounded border px-3 py-2" />
+        <input name="nombreCorto" required className="rounded-lg border border-borde bg-superficie px-3 py-2" />
       </label>
 
       <label className="flex flex-col gap-1 text-sm">
@@ -39,15 +39,15 @@ export default function FormularioNuevaEmpresa() {
           required
           rows={4}
           defaultValue={TEXTO_CONFORMIDAD_POR_DEFECTO}
-          className="rounded border px-3 py-2"
+          className="rounded-lg border border-borde bg-superficie px-3 py-2"
         />
-        <span className="text-xs text-neutral-500">
+        <span className="text-xs text-texto-suave">
           Es el texto que el empleado acepta al prestar conformidad. Se copia íntegro en cada firma.
         </span>
       </label>
 
       {error && (
-        <p role="alert" className="text-sm text-red-600">
+        <p role="alert" className="text-sm text-error">
           {error}
         </p>
       )}
@@ -55,7 +55,7 @@ export default function FormularioNuevaEmpresa() {
       <button
         type="submit"
         disabled={pendiente}
-        className="rounded bg-blue-900 px-4 py-2 text-white disabled:opacity-50"
+        className="rounded-lg bg-marron px-4 py-2 text-sm font-medium text-white hover:bg-marron-hover disabled:opacity-50"
       >
         {pendiente ? 'Creando…' : 'Crear empresa'}
       </button>

@@ -57,11 +57,11 @@ export default async function PaginaLiquidacion({ params, searchParams }: Params
         <Link href="/admin/liquidaciones" className="underline">
           Liquidaciones
         </Link>
-        <span className="text-neutral-400">/</span>
+        <span className="text-texto-tenue">/</span>
         <span>{liquidacion.empresas?.razon_social}</span>
       </div>
 
-      <h1 className="text-xl font-semibold">
+      <h1 className="text-2xl">
         {formatearPeriodo(liquidacion.periodo)} · {ETIQUETA_TIPO[liquidacion.tipo]} · Liq.{' '}
         {liquidacion.dato_fijo}
       </h1>
@@ -82,7 +82,7 @@ export default async function PaginaLiquidacion({ params, searchParams }: Params
       {liquidacion.estado === 'publicada' && vigentes.length > 0 && (
         <div className="flex flex-col gap-3 rounded-lg border p-4">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <h2 className="text-sm font-semibold">Seguimiento de conformidad</h2>
+            <h2 className="text-base font-semibold">Seguimiento de conformidad</h2>
             <div className="flex gap-3 text-sm">
               <Link
                 href={`/admin/liquidaciones/${id}/seguimiento.csv`}
@@ -102,8 +102,8 @@ export default async function PaginaLiquidacion({ params, searchParams }: Params
           </div>
 
           <div>
-            <div className="h-2 w-full overflow-hidden rounded bg-neutral-200 dark:bg-neutral-700">
-              <div className="h-full bg-green-600" style={{ width: `${porcentaje}%` }} />
+            <div className="h-2 w-full overflow-hidden rounded bg-borde">
+              <div className="h-full bg-exito" style={{ width: `${porcentaje}%` }} />
             </div>
             <p className="mt-1 text-sm">
               {conformados.length} de {vigentes.length} conformados ({porcentaje}%)
@@ -126,7 +126,7 @@ export default async function PaginaLiquidacion({ params, searchParams }: Params
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="text-left text-neutral-500">
+              <thead className="border-b border-borde text-left text-xs uppercase tracking-wide text-texto-tenue">
                 <tr>
                   <th className="py-2">Legajo</th>
                   <th>Nombre</th>
@@ -135,17 +135,17 @@ export default async function PaginaLiquidacion({ params, searchParams }: Params
               </thead>
               <tbody>
                 {seguimiento.map((r) => (
-                  <tr key={r.id} className="border-t">
+                  <tr key={r.id} className="border-t border-borde-suave">
                     <td className="py-2">{r.legajos?.numero ?? '—'}</td>
                     <td>{r.legajos?.personas?.apellido_nombre ?? '—'}</td>
                     <td>
                       {r.conformidades ? (
-                        <span className="text-green-700 dark:text-green-400">
+                        <span className="text-exito">
                           {new Date(r.conformidades.created_at).toLocaleString('es-AR')} ·{' '}
                           {r.conformidades.comprobante_codigo}
                         </span>
                       ) : (
-                        <span className="text-amber-700 dark:text-amber-400">Pendiente</span>
+                        <span className="text-alerta">Pendiente</span>
                       )}
                     </td>
                   </tr>
@@ -156,10 +156,10 @@ export default async function PaginaLiquidacion({ params, searchParams }: Params
         </div>
       )}
 
-      <h2 className="text-sm font-semibold text-neutral-500">Recibos</h2>
+      <h2 className="text-sm font-semibold text-texto-suave">Recibos</h2>
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
-          <thead className="text-left text-neutral-500">
+          <thead className="border-b border-borde text-left text-xs uppercase tracking-wide text-texto-tenue">
             <tr>
               <th className="py-2">Legajo</th>
               <th>Nombre</th>
@@ -171,13 +171,13 @@ export default async function PaginaLiquidacion({ params, searchParams }: Params
           </thead>
           <tbody>
             {todos.map((r) => (
-              <tr key={r.id} className="border-t">
+              <tr key={r.id} className="border-t border-borde-suave">
                 <td className="py-2">{r.legajos?.numero ?? '—'}</td>
                 <td>{r.legajos?.personas?.apellido_nombre ?? '—'}</td>
                 <td>{formatearCuil(r.cuil_archivo)}</td>
                 <td>v{r.version}</td>
                 <td>{r.estado}</td>
-                <td className="text-neutral-500">{r.nombre_original}</td>
+                <td className="text-texto-suave">{r.nombre_original}</td>
               </tr>
             ))}
           </tbody>

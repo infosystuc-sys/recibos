@@ -3,6 +3,7 @@ import { formatearPeriodo } from '@/lib/periodo'
 import { exigirEmpleado } from '@/lib/sesion-empleado'
 import { clienteServidor } from '@/lib/supabase/cliente-servidor'
 import { ETIQUETA_TIPO, type TipoLiquidacion } from '@/lib/tango/parse-nombre-recibo'
+import { Pastilla } from '@/componentes/ui'
 
 interface Fila {
   id: string
@@ -46,7 +47,7 @@ export default async function MiInicio() {
     <section className="flex flex-col gap-6">
       <h1 className="text-2xl font-semibold">Mis recibos</h1>
       {filas.length === 0 ? (
-        <p className="text-base text-neutral-600 dark:text-neutral-400">
+        <p className="text-base text-texto-suave">
           Todavía no tenés recibos publicados. Cuando la administración publique una
           liquidación, va a aparecer acá.
         </p>
@@ -54,18 +55,18 @@ export default async function MiInicio() {
         [...porEmpresa.entries()].map(([empresa, recibos]) => (
           <div key={empresa} className="flex flex-col gap-3">
             {porEmpresa.size > 1 && (
-              <h2 className="text-sm font-semibold text-neutral-500">{empresa}</h2>
+              <h2 className="text-sm font-semibold text-texto-suave">{empresa}</h2>
             )}
             <ul className="flex flex-col gap-3">
               {recibos.map((r) => (
                 <li key={r.id}>
                   <Link
                     href={`/mi/recibos/${r.id}`}
-                    className="flex items-center justify-between rounded-lg border p-4"
+                    className="flex items-center justify-between gap-3 rounded-xl border border-borde bg-superficie p-4 hover:bg-superficie-2"
                   >
                     <div>
                       <div className="text-lg font-medium">{formatearPeriodo(r.periodo)}</div>
-                      <div className="text-sm text-neutral-500">
+                      <div className="text-sm text-texto-suave">
                         {ETIQUETA_TIPO[r.tipo]}
                         {r.version > 1 && ` · versión ${r.version}`}
                       </div>
@@ -85,14 +86,10 @@ export default async function MiInicio() {
 function Estado({ conformadaAt, corregido }: { conformadaAt: string | null; corregido: boolean }) {
   if (conformadaAt) {
     return (
-      <span className="text-sm text-green-700 dark:text-green-400">
-        Conformado el {new Date(conformadaAt).toLocaleDateString('es-AR')}
-      </span>
+      <Pastilla tono="exito">
+        Conformado {new Date(conformadaAt).toLocaleDateString('es-AR')}
+      </Pastilla>
     )
   }
-  return (
-    <span className="rounded-full bg-amber-100 px-3 py-1 text-sm font-medium text-amber-900 dark:bg-amber-900 dark:text-amber-100">
-      {corregido ? 'Corregido — prestá conformidad' : 'Pendiente de conformidad'}
-    </span>
-  )
+  return <Pastilla tono="alerta">{corregido ? 'Corregido — falta conformidad' : 'Pendiente'}</Pastilla>
 }

@@ -13,10 +13,10 @@ export default async function PaginaUsuarios() {
 
   return (
     <section className="flex flex-col gap-6">
-      <h1 className="text-xl font-semibold">Usuarios administradores</h1>
+      <h1 className="text-2xl">Usuarios administradores</h1>
 
       <table className="w-full text-sm">
-        <thead className="text-left text-neutral-500">
+        <thead className="border-b border-borde text-left text-xs uppercase tracking-wide text-texto-tenue">
           <tr>
             <th className="py-2">Nombre</th>
             <th>Email</th>
@@ -25,7 +25,7 @@ export default async function PaginaUsuarios() {
         </thead>
         <tbody>
           {(usuarios ?? []).map((u) => (
-            <tr key={u.id} className="border-t align-top">
+            <tr key={u.id} className="border-t border-borde-suave align-top">
               <td className="py-2">{u.nombre}</td>
               <td className="py-2">{u.email}</td>
               <td className="py-2">

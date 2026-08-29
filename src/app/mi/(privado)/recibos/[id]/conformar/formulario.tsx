@@ -21,7 +21,7 @@ export default function FormularioConformidad({ reciboId }: { reciboId: string }
       </label>
 
       {error && (
-        <p role="alert" className="text-base text-red-600">
+        <p role="alert" className="text-base text-error">
           {error}
         </p>
       )}
@@ -36,7 +36,7 @@ export default function FormularioConformidad({ reciboId }: { reciboId: string }
             if (r && 'error' in r) setError(r.error)
           })
         }}
-        className="rounded-lg bg-blue-900 px-4 py-3 text-lg font-medium text-white disabled:opacity-50"
+        className="rounded-lg bg-marron px-4 py-3 text-lg font-medium text-white disabled:opacity-50"
       >
         {pendiente ? 'Registrando…' : 'Confirmar conformidad'}
       </button>

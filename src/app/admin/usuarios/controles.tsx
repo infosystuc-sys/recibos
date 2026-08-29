@@ -22,7 +22,7 @@ export default function ControlesUsuario({
 
   if (esUnoMismo) {
     return (
-      <div className="flex items-center gap-2 text-sm text-neutral-500">
+      <div className="flex items-center gap-2 text-sm text-texto-suave">
         <span className="capitalize">{rol}</span>
         <span>· vos</span>
       </div>
@@ -43,7 +43,7 @@ export default function ControlesUsuario({
               if (err) setError(err)
             })
           }}
-          className="rounded border px-2 py-1 text-sm capitalize"
+          className="rounded-lg border border-borde bg-superficie px-2 py-1 text-sm capitalize"
         >
           {ROLES.map((r) => (
             <option key={r} value={r}>
@@ -63,17 +63,17 @@ export default function ControlesUsuario({
                 if (err) setError(err)
               })
             }}
-            className="text-sm text-red-600 underline disabled:opacity-50"
+            className="text-sm text-error underline disabled:opacity-50"
           >
             Desactivar
           </button>
         ) : (
-          <span className="text-sm text-neutral-500">Inactivo</span>
+          <span className="text-sm text-texto-suave">Inactivo</span>
         )}
       </div>
 
       {error && (
-        <p role="alert" className="text-sm text-red-600">
+        <p role="alert" className="text-sm text-error">
           {error}
         </p>
       )}

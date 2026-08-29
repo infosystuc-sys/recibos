@@ -1,50 +1,56 @@
 import type { ReactNode } from 'react'
 import Link from 'next/link'
 import { salir } from '@/acciones/sesion'
+import { Marca } from '@/componentes/logo'
+import { EtiquetaSeccion } from '@/componentes/ui'
 import { exigirAdmin } from '@/lib/sesion'
-
-const ENLACES = [
-  { href: '/admin/empresas', texto: 'Empresas' },
-  { href: '/admin/empleados', texto: 'Empleados' },
-  { href: '/admin/liquidaciones', texto: 'Liquidaciones' },
-  { href: '/admin/observaciones', texto: 'Observaciones' },
-]
+import NavAdmin from './nav'
 
 export default async function LayoutAdmin({ children }: { children: ReactNode }) {
   const admin = await exigirAdmin('ver')
+  const iniciales = admin.nombre
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((p) => p[0]?.toUpperCase() ?? '')
+    .join('')
 
   return (
-    <div className="min-h-dvh">
-      <header className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2 border-b px-4 py-3 sm:px-6">
-        <Link href="/admin" className="font-semibold">
-          Conforme
+    <div className="flex min-h-dvh flex-col md:flex-row">
+      <aside className="flex flex-col gap-6 border-b border-borde bg-fondo px-4 py-4 md:w-60 md:shrink-0 md:border-b-0 md:border-r md:px-5 md:py-6">
+        <Link href="/admin">
+          <Marca />
         </Link>
 
-        <div className="flex items-center gap-4 text-sm">
-          <span className="text-neutral-600 dark:text-neutral-400">
-            {admin.nombre} · {admin.rol}
-          </span>
-          <form action={salir}>
-            <button type="submit" className="underline">
+        <NavAdmin esAdmin={admin.rol === 'admin'} />
+
+        <div className="mt-auto hidden border-t border-borde pt-4 md:block">
+          <EtiquetaSeccion>Conectado como</EtiquetaSeccion>
+          <div className="mt-2 flex items-center gap-2.5">
+            <span className="grid size-9 place-items-center rounded-full bg-acento-suave text-sm font-semibold text-acento-oscuro">
+              {iniciales}
+            </span>
+            <div className="min-w-0 leading-tight">
+              <div className="truncate text-sm font-medium">{admin.nombre}</div>
+              <div className="text-xs capitalize text-texto-suave">{admin.rol}</div>
+            </div>
+          </div>
+          <form action={salir} className="mt-3">
+            <button type="submit" className="text-sm text-texto-suave underline hover:text-texto">
               Salir
             </button>
           </form>
         </div>
 
-        <nav className="-mx-4 flex w-full items-center gap-4 overflow-x-auto px-4 text-sm sm:mx-0 sm:w-auto sm:overflow-visible sm:px-0">
-          {ENLACES.map((e) => (
-            <Link key={e.href} href={e.href} className="shrink-0 whitespace-nowrap">
-              {e.texto}
-            </Link>
-          ))}
-          {admin.rol === 'admin' && (
-            <Link href="/admin/usuarios" className="shrink-0 whitespace-nowrap">
-              Usuarios
-            </Link>
-          )}
-        </nav>
-      </header>
-      <main className="p-4 sm:p-6">{children}</main>
+        <form action={salir} className="md:hidden">
+          <button type="submit" className="text-sm text-texto-suave underline">
+            Salir
+          </button>
+        </form>
+      </aside>
+
+      <main className="flex-1 px-4 py-6 md:px-10 md:py-8">
+        <div className="mx-auto max-w-5xl">{children}</div>
+      </main>
     </div>
   )
 }

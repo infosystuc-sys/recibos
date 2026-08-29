@@ -79,7 +79,7 @@ export default async function PaginaEmpleados({ searchParams }: Params) {
   return (
     <section className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold">Empleados</h1>
+        <h1 className="text-2xl">Empleados</h1>
         <div className="flex gap-3 text-sm">
           {puedeOperar && (
             <Link href="/admin/empleados/importar" className="underline">
@@ -89,7 +89,7 @@ export default async function PaginaEmpleados({ searchParams }: Params) {
           {puedeOperar && (
             <Link
               href={`/admin/empleados/nuevo?empresa=${empresaId}`}
-              className="rounded bg-blue-900 px-3 py-2 text-white"
+              className="rounded bg-marron px-3 py-2 text-white"
             >
               Nuevo empleado
             </Link>
@@ -100,7 +100,7 @@ export default async function PaginaEmpleados({ searchParams }: Params) {
       <form method="get" className="flex flex-wrap items-end gap-3 text-sm">
         <label className="flex flex-col gap-1">
           Empresa
-          <select name="empresa" defaultValue={empresaId} className="rounded border px-2 py-1">
+          <select name="empresa" defaultValue={empresaId} className="rounded-lg border border-borde bg-superficie px-2 py-1">
             {(empresas ?? []).map((e) => (
               <option key={e.id} value={e.id}>
                 {e.razon_social}
@@ -110,7 +110,7 @@ export default async function PaginaEmpleados({ searchParams }: Params) {
         </label>
         <label className="flex flex-col gap-1">
           Estado
-          <select name="estado" defaultValue={sp.estado ?? ''} className="rounded border px-2 py-1">
+          <select name="estado" defaultValue={sp.estado ?? ''} className="rounded-lg border border-borde bg-superficie px-2 py-1">
             <option value="">Todos</option>
             {ESTADOS.map((e) => (
               <option key={e} value={e}>
@@ -125,10 +125,10 @@ export default async function PaginaEmpleados({ searchParams }: Params) {
             name="q"
             defaultValue={sp.q ?? ''}
             placeholder="legajo, nombre o CUIL"
-            className="rounded border px-2 py-1"
+            className="rounded-lg border border-borde bg-superficie px-2 py-1"
           />
         </label>
-        <button type="submit" className="rounded border px-3 py-1">
+        <button type="submit" className="rounded-lg border border-borde bg-superficie px-3 py-1">
           Filtrar
         </button>
       </form>
@@ -136,7 +136,7 @@ export default async function PaginaEmpleados({ searchParams }: Params) {
       {filtrados.length > 0 ? (
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="text-left text-neutral-500">
+            <thead className="border-b border-borde text-left text-xs uppercase tracking-wide text-texto-tenue">
               <tr>
                 <th className="py-2">Legajo</th>
                 <th>Nombre</th>
@@ -148,10 +148,10 @@ export default async function PaginaEmpleados({ searchParams }: Params) {
             </thead>
             <tbody>
               {filtrados.map((l) => (
-                <tr key={l.id} className="border-t align-top">
+                <tr key={l.id} className="border-t border-borde-suave align-top">
                   <td className="py-2">
                     {l.numero}
-                    {!l.activo && <span className="ml-1 text-xs text-neutral-400">(inactivo)</span>}
+                    {!l.activo && <span className="ml-1 text-xs text-texto-tenue">(inactivo)</span>}
                   </td>
                   <td className="py-2">{l.personas?.apellido_nombre ?? '—'}</td>
                   <td className="py-2">{l.personas ? formatearCuil(l.personas.cuil) : '—'}</td>
@@ -187,7 +187,7 @@ export default async function PaginaEmpleados({ searchParams }: Params) {
           </table>
         </div>
       ) : (
-        <p className="text-sm text-neutral-600">
+        <p className="text-sm text-texto-suave">
           {empresaId
             ? 'No hay empleados que coincidan con el filtro.'
             : 'Todavía no hay empresas. Cargá una y después importá su padrón.'}

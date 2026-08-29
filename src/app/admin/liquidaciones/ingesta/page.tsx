@@ -18,15 +18,15 @@ export default async function PaginaIngesta() {
         <Link href="/admin/liquidaciones" className="underline">
           Liquidaciones
         </Link>
-        <span className="text-neutral-400">/</span>
+        <span className="text-texto-tenue">/</span>
         <span>Ingesta</span>
       </div>
-      <h1 className="text-xl font-semibold">Ingesta de recibos</h1>
+      <h1 className="text-2xl">Ingesta de recibos</h1>
 
       {empresas && empresas.length > 0 ? (
         <Ingesta empresas={empresas} />
       ) : (
-        <p className="text-sm text-neutral-600">
+        <p className="text-sm text-texto-suave">
           Primero cargá una empresa y su padrón.
         </p>
       )}

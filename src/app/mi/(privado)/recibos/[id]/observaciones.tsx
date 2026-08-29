@@ -23,7 +23,7 @@ export default function Observaciones({
   return (
     <section className="flex flex-col gap-4 border-t pt-5">
       <h2 className="text-lg font-semibold">Observaciones</h2>
-      <p className="text-sm text-neutral-500">
+      <p className="text-sm text-texto-suave">
         Si algo del recibo no te cierra, dejá un reclamo. No afecta tu conformidad ni la
         descarga: llega a la administración para que lo revise.
       </p>
@@ -33,14 +33,14 @@ export default function Observaciones({
           {observaciones.map((o) => (
             <li key={o.id} className="rounded-lg border p-3 text-sm">
               <div className="flex items-center justify-between">
-                <span className="text-xs text-neutral-500">
+                <span className="text-xs text-texto-suave">
                   {new Date(o.created_at).toLocaleString('es-AR')}
                 </span>
                 <span
                   className={
                     o.estado === 'resuelta'
-                      ? 'text-green-700 dark:text-green-400'
-                      : 'text-amber-700 dark:text-amber-400'
+                      ? 'text-exito'
+                      : 'text-alerta'
                   }
                 >
                   {o.estado === 'resuelta' ? 'Respondida' : 'Abierta'}
@@ -48,7 +48,7 @@ export default function Observaciones({
               </div>
               <p className="mt-1 whitespace-pre-wrap">{o.texto}</p>
               {o.respuesta && (
-                <p className="mt-2 rounded bg-neutral-100 p-2 text-neutral-700 dark:bg-neutral-800 dark:text-neutral-200">
+                <p className="mt-2 rounded bg-superficie-2 p-2">
                   <span className="font-medium">Respuesta: </span>
                   {o.respuesta}
                 </p>
@@ -67,7 +67,7 @@ export default function Observaciones({
           className="rounded-lg border px-3 py-2 text-base"
         />
         {error && (
-          <p role="alert" className="text-sm text-red-600">
+          <p role="alert" className="text-sm text-error">
             {error}
           </p>
         )}

@@ -53,7 +53,7 @@ export default async function PaginaObservaciones({ searchParams }: Params) {
   return (
     <section className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold">Observaciones</h1>
+        <h1 className="text-2xl">Observaciones</h1>
         <div className="flex gap-3 text-sm">
           <Link href="/admin/observaciones" className={!estado || estado !== 'todas' ? 'font-semibold' : 'underline'}>
             Abiertas
@@ -65,7 +65,7 @@ export default async function PaginaObservaciones({ searchParams }: Params) {
       </div>
 
       {observaciones.length === 0 ? (
-        <p className="text-sm text-neutral-600">
+        <p className="text-sm text-texto-suave">
           {filtro ? 'No hay observaciones abiertas.' : 'Todavía no hay observaciones.'}
         </p>
       ) : (
@@ -78,7 +78,7 @@ export default async function PaginaObservaciones({ searchParams }: Params) {
               <li
                 key={o.id}
                 className={`rounded-lg border p-4 ${
-                  o.estado === 'abierta' ? 'border-amber-300 bg-amber-50 dark:bg-amber-950' : ''
+                  o.estado === 'abierta' ? 'border-amber-300 bg-alerta-fondo' : ''
                 }`}
               >
                 <div className="flex flex-wrap items-baseline justify-between gap-2 text-sm">
@@ -87,11 +87,11 @@ export default async function PaginaObservaciones({ searchParams }: Params) {
                     {persona && ` · CUIL ${formatearCuil(persona.cuil)}`}
                     {r?.legajos && ` · legajo ${r.legajos.numero}`}
                   </span>
-                  <span className="text-neutral-500">
+                  <span className="text-texto-suave">
                     {new Date(o.created_at).toLocaleString('es-AR')}
                   </span>
                 </div>
-                <div className="text-sm text-neutral-500">
+                <div className="text-sm text-texto-suave">
                   {liq?.empresas?.razon_social} · {liq && formatearPeriodo(liq.periodo)} ·{' '}
                   {liq && ETIQUETA_TIPO[liq.tipo as TipoLiquidacion]}
                   {r && r.version > 1 && ` · versión ${r.version}`}
@@ -100,11 +100,11 @@ export default async function PaginaObservaciones({ searchParams }: Params) {
                 <p className="mt-2 whitespace-pre-wrap text-base">{o.texto}</p>
 
                 {o.respuesta ? (
-                  <p className="mt-3 rounded bg-white/60 p-2 text-sm dark:bg-black/30">
+                  <p className="mt-3 rounded bg-white/60 p-2 text-sm ">
                     <span className="font-medium">Respuesta: </span>
                     {o.respuesta}
                     {o.resuelta_at && (
-                      <span className="text-neutral-500">
+                      <span className="text-texto-suave">
                         {' '}
                         ({new Date(o.resuelta_at).toLocaleDateString('es-AR')})
                       </span>
@@ -113,7 +113,7 @@ export default async function PaginaObservaciones({ searchParams }: Params) {
                 ) : puedeResponder ? (
                   <Responder observacionId={o.id} />
                 ) : (
-                  <p className="mt-2 text-sm text-neutral-500">Sin responder.</p>
+                  <p className="mt-2 text-sm text-texto-suave">Sin responder.</p>
                 )}
               </li>
             )

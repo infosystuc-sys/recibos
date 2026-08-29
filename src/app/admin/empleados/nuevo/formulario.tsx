@@ -38,7 +38,7 @@ export default function FormularioEmpleado({
           name="empresaId"
           defaultValue={inicial.empresaId}
           disabled={edicion}
-          className="rounded border px-3 py-2 disabled:bg-neutral-100"
+          className="rounded-lg border border-borde bg-superficie px-3 py-2 disabled:bg-superficie-2"
         >
           {empresas.map((e) => (
             <option key={e.id} value={e.id}>
@@ -58,7 +58,7 @@ export default function FormularioEmpleado({
           required
           defaultValue={inicial.legajo ?? ''}
           readOnly={edicion}
-          className="rounded border px-3 py-2 read-only:bg-neutral-100"
+          className="rounded-lg border border-borde bg-superficie px-3 py-2 read-only:bg-superficie-2"
         />
       </label>
 
@@ -69,7 +69,7 @@ export default function FormularioEmpleado({
           required
           defaultValue={inicial.cuil ?? ''}
           placeholder="20-27103275-8"
-          className="rounded border px-3 py-2"
+          className="rounded-lg border border-borde bg-superficie px-3 py-2"
         />
       </label>
 
@@ -79,7 +79,7 @@ export default function FormularioEmpleado({
           name="apellidoNombre"
           required
           defaultValue={inicial.apellidoNombre ?? ''}
-          className="rounded border px-3 py-2"
+          className="rounded-lg border border-borde bg-superficie px-3 py-2"
         />
       </label>
 
@@ -89,7 +89,7 @@ export default function FormularioEmpleado({
           name="email"
           type="email"
           defaultValue={inicial.email ?? ''}
-          className="rounded border px-3 py-2"
+          className="rounded-lg border border-borde bg-superficie px-3 py-2"
         />
       </label>
 
@@ -98,7 +98,7 @@ export default function FormularioEmpleado({
         <input
           name="telefono"
           defaultValue={inicial.telefono ?? ''}
-          className="rounded border px-3 py-2"
+          className="rounded-lg border border-borde bg-superficie px-3 py-2"
         />
       </label>
 
@@ -107,7 +107,7 @@ export default function FormularioEmpleado({
         <input
           name="sector"
           defaultValue={inicial.sector ?? ''}
-          className="rounded border px-3 py-2"
+          className="rounded-lg border border-borde bg-superficie px-3 py-2"
         />
       </label>
 
@@ -117,7 +117,7 @@ export default function FormularioEmpleado({
       </label>
 
       {error && (
-        <p role="alert" className="text-sm text-red-600">
+        <p role="alert" className="text-sm text-error">
           {error}
         </p>
       )}
@@ -125,7 +125,7 @@ export default function FormularioEmpleado({
       <button
         type="submit"
         disabled={pendiente}
-        className="self-start rounded bg-blue-900 px-4 py-2 text-white disabled:opacity-50"
+        className="self-start rounded bg-marron px-4 py-2 text-white disabled:opacity-50"
       >
         {pendiente ? 'Guardando…' : edicion ? 'Guardar cambios' : 'Crear empleado'}
       </button>

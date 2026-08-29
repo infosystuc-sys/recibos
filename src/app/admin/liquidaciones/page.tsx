@@ -4,6 +4,13 @@ import { puede } from '@/lib/permisos'
 import { exigirAdmin } from '@/lib/sesion'
 import { clienteServidor } from '@/lib/supabase/cliente-servidor'
 import { ETIQUETA_TIPO } from '@/lib/tango/parse-nombre-recibo'
+import { EnlaceBoton, Pastilla, Tarjeta } from '@/componentes/ui'
+
+const TONO_ESTADO = {
+  borrador: 'neutro',
+  publicada: 'exito',
+  anulada: 'error',
+} as const
 
 export default async function PaginaLiquidaciones() {
   const admin = await exigirAdmin('ver')
@@ -16,55 +23,61 @@ export default async function PaginaLiquidaciones() {
     .order('created_at', { ascending: false })
 
   return (
-    <section className="flex flex-col gap-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold">Liquidaciones</h1>
+    <div className="flex flex-col gap-6">
+      <header className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="text-3xl">Liquidaciones</h1>
+          <p className="mt-1 text-sm text-texto-suave">
+            Cada lote de recibos de Tango, su estado y el seguimiento de conformidades.
+          </p>
+        </div>
         {puede(admin.rol, 'operar') && (
-          <Link
-            href="/admin/liquidaciones/ingesta"
-            className="rounded bg-blue-900 px-3 py-2 text-sm text-white"
-          >
-            Nueva ingesta
-          </Link>
+          <EnlaceBoton href="/admin/liquidaciones/ingesta">Nueva ingesta</EnlaceBoton>
         )}
-      </div>
+      </header>
 
       {liquidaciones && liquidaciones.length > 0 ? (
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="text-left text-neutral-500">
-              <tr>
-                <th className="py-2">Empresa</th>
-                <th>Período</th>
-                <th>Tipo</th>
-                <th>Liq.</th>
-                <th>Recibos</th>
-                <th>Estado</th>
-              </tr>
-            </thead>
-            <tbody>
-              {liquidaciones.map((l) => (
-                <tr key={l.id} className="border-t">
-                  <td className="py-2">{l.empresas?.razon_social ?? '—'}</td>
-                  <td>{formatearPeriodo(l.periodo)}</td>
-                  <td>{ETIQUETA_TIPO[l.tipo]}</td>
-                  <td>{l.dato_fijo}</td>
-                  <td>{l.recibos[0]?.count ?? 0}</td>
-                  <td>
-                    <Link href={`/admin/liquidaciones/${l.id}`} className="underline">
-                      {l.estado}
-                    </Link>
-                  </td>
+        <Tarjeta className="p-0">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="border-b border-borde text-left text-xs uppercase tracking-wide text-texto-tenue">
+                <tr>
+                  <th className="px-4 py-3">Empresa</th>
+                  <th className="px-4 py-3">Período</th>
+                  <th className="px-4 py-3">Tipo</th>
+                  <th className="px-4 py-3">Liq.</th>
+                  <th className="px-4 py-3">Recibos</th>
+                  <th className="px-4 py-3">Estado</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {liquidaciones.map((l) => (
+                  <tr key={l.id} className="border-t border-borde-suave hover:bg-superficie-2">
+                    <td className="px-4 py-3">
+                      <Link href={`/admin/liquidaciones/${l.id}`} className="font-medium hover:underline">
+                        {l.empresas?.razon_social ?? '—'}
+                      </Link>
+                    </td>
+                    <td className="px-4 py-3">{formatearPeriodo(l.periodo)}</td>
+                    <td className="px-4 py-3">{ETIQUETA_TIPO[l.tipo]}</td>
+                    <td className="px-4 py-3">{l.dato_fijo}</td>
+                    <td className="px-4 py-3">{l.recibos[0]?.count ?? 0}</td>
+                    <td className="px-4 py-3">
+                      <Pastilla tono={TONO_ESTADO[l.estado]}>{l.estado}</Pastilla>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Tarjeta>
       ) : (
-        <p className="text-sm text-neutral-600">
-          Todavía no hay liquidaciones. Empezá una ingesta para cargar la primera.
-        </p>
+        <Tarjeta>
+          <p className="text-sm text-texto-suave">
+            Todavía no hay liquidaciones. Empezá una ingesta para cargar la primera.
+          </p>
+        </Tarjeta>
       )}
-    </section>
+    </div>
   )
 }

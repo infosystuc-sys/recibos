@@ -164,7 +164,7 @@ export default function SelectorCarpeta({ empresaId, onResultado }: Props) {
             type="button"
             onClick={() => conectar(false)}
             disabled={ocupado}
-            className="rounded bg-blue-900 px-4 py-2 text-sm text-white disabled:opacity-50"
+            className="rounded bg-marron px-4 py-2 text-sm text-white disabled:opacity-50"
           >
             {ocupado
               ? 'Escaneando…'
@@ -184,7 +184,7 @@ export default function SelectorCarpeta({ empresaId, onResultado }: Props) {
           )}
         </div>
       ) : (
-        <p className="text-sm text-amber-700">
+        <p className="text-sm text-alerta">
           Tu navegador no permite recordar la carpeta. Usá Chrome o Edge, o arrastrá los
           archivos acá.
         </p>
@@ -198,13 +198,13 @@ export default function SelectorCarpeta({ empresaId, onResultado }: Props) {
         onDragLeave={() => setArrastrando(false)}
         onDrop={alSoltar}
         className={`rounded border-2 border-dashed p-6 text-center text-sm ${
-          arrastrando ? 'border-blue-500 bg-blue-50' : 'border-neutral-300 text-neutral-500'
+          arrastrando ? 'border-acento bg-acento-suave' : 'border-borde text-texto-suave'
         }`}
       >
         {ocupado ? 'Escaneando…' : 'Arrastrá acá la carpeta con los recibos de Tango'}
       </div>
 
-      <label className="text-sm text-neutral-500">
+      <label className="text-sm text-texto-suave">
         o elegí la carpeta manualmente (no se recuerda):{' '}
         <input
           type="file"
@@ -221,9 +221,9 @@ export default function SelectorCarpeta({ empresaId, onResultado }: Props) {
         />
       </label>
 
-      {resumen && <p className="text-sm text-neutral-700">{resumen}</p>}
+      {resumen && <p className="text-sm ">{resumen}</p>}
       {error && (
-        <p role="alert" className="text-sm text-red-600">
+        <p role="alert" className="text-sm text-error">
           {error}
         </p>
       )}

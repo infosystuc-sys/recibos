@@ -1,26 +1,89 @@
-@import "tailwindcss";
+@import 'tailwindcss';
+
+/* La app es de tono claro y cálido (ver capturas). El modo oscuro del SO no
+   debe activar los `dark:` que quedaron en componentes. */
+@variant dark (&:where(.modo-oscuro, .modo-oscuro *));
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  color-scheme: light;
+
+  --fondo: #fbf7ef;
+  --superficie: #ffffff;
+  --superficie-2: #f7f2e6;
+  --borde: #e8e0d0;
+  --borde-suave: #f0eadc;
+
+  --texto: #2b2420;
+  --texto-suave: #857a6d;
+  --texto-tenue: #a49a8c;
+
+  --acento: #de8e2e;
+  --acento-oscuro: #b5701c;
+  --acento-suave: #f7ead4;
+
+  --marron: #4a3728;
+  --marron-hover: #5c4636;
+
+  --exito: #2e7d46;
+  --exito-fondo: #e3f1e8;
+  --info: #38609f;
+  --info-fondo: #e7eef8;
+  --alerta: #a9700c;
+  --alerta-fondo: #faf0dc;
+  --error: #c0392b;
+  --error-fondo: #fbe9e7;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+  --color-fondo: var(--fondo);
+  --color-superficie: var(--superficie);
+  --color-superficie-2: var(--superficie-2);
+  --color-borde: var(--borde);
+  --color-borde-suave: var(--borde-suave);
+  --color-texto: var(--texto);
+  --color-texto-suave: var(--texto-suave);
+  --color-texto-tenue: var(--texto-tenue);
+  --color-acento: var(--acento);
+  --color-acento-oscuro: var(--acento-oscuro);
+  --color-acento-suave: var(--acento-suave);
+  --color-marron: var(--marron);
+  --color-marron-hover: var(--marron-hover);
+  --color-exito: var(--exito);
+  --color-exito-fondo: var(--exito-fondo);
+  --color-info: var(--info);
+  --color-info-fondo: var(--info-fondo);
+  --color-alerta: var(--alerta);
+  --color-alerta-fondo: var(--alerta-fondo);
+  --color-error: var(--error);
+  --color-error-fondo: var(--error-fondo);
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --font-sans: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--font-serif), Georgia, 'Times New Roman', serif;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--fondo);
+  color: var(--texto);
+  font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-serif), Georgia, serif;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+/* Números y datos "de display" en serif, como en las capturas. */
+.serif {
+  font-family: var(--font-serif), Georgia, serif;
+}
+
+.etiqueta-seccion {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--texto-tenue);
 }

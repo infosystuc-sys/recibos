@@ -52,20 +52,20 @@ export default async function VerRecibo({ params, searchParams }: Params) {
 
       <div>
         <h1 className="text-2xl font-semibold">{formatearPeriodo(periodo)}</h1>
-        <p className="text-neutral-600 dark:text-neutral-400">
+        <p className="text-texto-suave">
           {recibo.liquidaciones.empresas?.razon_social} · {ETIQUETA_TIPO[tipo]}
           {recibo.version > 1 && ` · versión ${recibo.version}`}
         </p>
       </div>
 
       {conformado && !reemplazado && (
-        <p className="rounded-lg bg-green-50 px-4 py-3 text-base text-green-800 dark:bg-green-950 dark:text-green-200">
+        <p className="rounded-lg bg-exito-fondo px-4 py-3 text-base text-green-800 dark:bg-green-950 dark:text-green-200">
           Conformidad registrada. Ya podés descargar el recibo y el comprobante.
         </p>
       )}
 
       {reemplazado ? (
-        <p className="rounded-lg bg-amber-50 px-4 py-3 text-base text-amber-900 dark:bg-amber-950 dark:text-amber-100">
+        <p className="rounded-lg bg-alerta-fondo px-4 py-3 text-base text-amber-900 dark:bg-amber-950 dark:text-amber-100">
           Esta versión del recibo fue reemplazada por una corrección. Buscá la versión
           vigente en <Link href="/mi" className="underline">Mis recibos</Link>.
         </p>
@@ -78,13 +78,13 @@ export default async function VerRecibo({ params, searchParams }: Params) {
               className="h-[70vh] w-full rounded-lg border"
             />
           ) : (
-            <p className="text-base text-red-600">No se pudo cargar el documento.</p>
+            <p className="text-base text-error">No se pudo cargar el documento.</p>
           )}
 
           <div className="flex flex-col gap-3">
             {conformidad ? (
               <>
-                <p className="text-base text-green-700 dark:text-green-400">
+                <p className="text-base text-exito">
                   Conformado el {new Date(conformidad.created_at).toLocaleString('es-AR')}
                 </p>
                 <DescargarRecibo reciboId={recibo.id} habilitado />
@@ -101,7 +101,7 @@ export default async function VerRecibo({ params, searchParams }: Params) {
                 <DescargarRecibo reciboId={recibo.id} habilitado={false} />
                 <Link
                   href={`/mi/recibos/${recibo.id}/conformar`}
-                  className="rounded-lg bg-blue-900 px-4 py-3 text-center text-lg font-medium text-white"
+                  className="rounded-lg bg-marron px-4 py-3 text-center text-lg font-medium text-white"
                 >
                   Prestar conformidad
                 </Link>

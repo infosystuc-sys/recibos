@@ -29,12 +29,12 @@ export default function PublicarBoton({ liquidacionId }: { liquidacionId: string
             else router.refresh()
           })
         }}
-        className="self-start rounded bg-green-700 px-4 py-2 text-sm text-white disabled:opacity-50"
+        className="self-start rounded bg-exito px-4 py-2 text-sm text-white disabled:opacity-50"
       >
         {pendiente ? 'Publicando…' : 'Publicar liquidación'}
       </button>
       {error && (
-        <p role="alert" className="text-sm text-red-600">
+        <p role="alert" className="text-sm text-error">
           {error}
         </p>
       )}

@@ -33,18 +33,18 @@ export default async function ConformarRecibo({ params }: { params: Promise<{ id
 
       <div>
         <h1 className="text-2xl font-semibold">Prestar conformidad</h1>
-        <p className="mt-1 text-neutral-600 dark:text-neutral-400">
+        <p className="mt-1 text-texto-suave">
           {empresas?.razon_social} · {formatearPeriodo(periodo)} ·{' '}
           {ETIQUETA_TIPO[tipo as TipoLiquidacion]} · Liq. {dato_fijo}
           {recibo.version > 1 && ` · versión ${recibo.version}`}
         </p>
       </div>
 
-      <blockquote className="rounded-lg border-l-4 border-blue-900 bg-neutral-50 px-4 py-3 text-base dark:bg-neutral-900">
+      <blockquote className="rounded-lg border-l-4 border-blue-900 bg-neutral-50 px-4 py-3 text-base ">
         {empresas?.texto_conformidad}
       </blockquote>
 
-      <p className="text-sm text-neutral-500">
+      <p className="text-sm text-texto-suave">
         Al confirmar se registran la fecha y hora del servidor, tu dispositivo y el hash del
         documento exacto que estás firmando. Es un registro permanente y no se puede
         deshacer.

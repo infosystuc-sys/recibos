@@ -1,29 +1,25 @@
-import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
-import "./globals.css";
+import type { Metadata } from 'next'
+import { Inter, Lora } from 'next/font/google'
+import './globals.css'
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+const sans = Inter({ subsets: ['latin'], variable: '--font-sans' })
+const serif = Lora({ subsets: ['latin'], variable: '--font-serif' })
 
 export const metadata: Metadata = {
-  title: "Conforme",
-  description: "Distribución de recibos de sueldo con conformidad del empleado.",
-};
+  title: 'Conforme',
+  description: 'Distribución de recibos de sueldo con conformidad del empleado.',
+  manifest: '/manifest.webmanifest',
+  appleWebApp: { capable: true, title: 'Conforme', statusBarStyle: 'default' },
+}
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export const viewport = {
+  themeColor: '#fbf7ef',
+}
+
+export default function RootLayout({ children }: LayoutProps<'/'>) {
   return (
-    <html
-      lang="es"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
-    >
-      <body className="min-h-full flex flex-col">{children}</body>
+    <html lang="es" className={`${sans.variable} ${serif.variable} h-full antialiased`}>
+      <body className="min-h-full">{children}</body>
     </html>
-  );
+  )
 }
