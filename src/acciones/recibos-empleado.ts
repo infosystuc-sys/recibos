@@ -85,6 +85,13 @@ export async function registrarConformidad(
     .maybeSingle()
   if (yaHay) return { error: 'Ya prestaste conformidad a este recibo.' }
 
+  const { data: yaRechazado } = await servicio
+    .from('rechazos')
+    .select('id')
+    .eq('recibo_id', reciboId)
+    .maybeSingle()
+  if (yaRechazado) return { error: 'Ya rechazaste este recibo. No se puede conformar después de rechazar.' }
+
   const textoLegal = res.recibo.liquidaciones?.empresas?.texto_conformidad
   if (!textoLegal) return { error: 'La empresa no tiene configurado el texto de conformidad.' }
 
@@ -126,4 +133,71 @@ export async function registrarConformidad(
   revalidatePath('/mi')
   revalidatePath(`/mi/recibos/${reciboId}`)
   redirect(`/mi/recibos/${reciboId}?conformado=1`)
+}
+
+/**
+ * Registra el rechazo del empleado a la versión vigente de un recibo.
+ * Conformar y rechazar son excluyentes. Se sella hora, IP y navegador del
+ * lado del servidor. Es un registro permanente e inmutable.
+ */
+export async function rechazarRecibo(
+  reciboId: string,
+  motivo: string,
+): Promise<{ error: string } | never> {
+  const empleado = await exigirEmpleado()
+
+  const limpio = motivo.trim()
+  if (limpio.length < 3) return { error: 'Contanos brevemente por qué rechazás el recibo.' }
+  if (limpio.length > 2000) return { error: 'El motivo es demasiado largo.' }
+
+  const res = await cargarReciboPropio(reciboId, empleado.id)
+  if (!res.ok) return { error: res.error }
+
+  const servicio = clienteServicio()
+
+  const { data: yaConforme } = await servicio
+    .from('conformidades')
+    .select('id')
+    .eq('recibo_id', reciboId)
+    .maybeSingle()
+  if (yaConforme) return { error: 'Ya prestaste conformidad a este recibo. No se puede rechazar después.' }
+
+  const { data: yaHay } = await servicio
+    .from('rechazos')
+    .select('id')
+    .eq('recibo_id', reciboId)
+    .maybeSingle()
+  if (yaHay) return { error: 'Ya rechazaste este recibo.' }
+
+  const cabeceras = await headers()
+  const ip = cabeceras.get('x-forwarded-for')?.split(',')[0]?.trim() || null
+  const userAgent = cabeceras.get('user-agent') || null
+
+  const { data: rechazo, error } = await servicio
+    .from('rechazos')
+    .insert({
+      recibo_id: reciboId,
+      persona_id: empleado.id,
+      motivo: limpio,
+      ip,
+      user_agent: userAgent,
+    })
+    .select('id')
+    .single()
+
+  if (error) return { error: `No se pudo registrar el rechazo: ${error.message}` }
+
+  await registrarEvento({
+    actorTipo: 'empleado',
+    actorId: empleado.id,
+    accion: 'rechazo.registrar',
+    entidad: 'rechazos',
+    entidadId: rechazo.id,
+    detalle: { recibo_id: reciboId, cuil: empleado.cuil },
+    ip,
+  })
+
+  revalidatePath('/mi')
+  revalidatePath(`/mi/recibos/${reciboId}`)
+  redirect(`/mi/recibos/${reciboId}?rechazado=1`)
 }

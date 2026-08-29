@@ -1,17 +1,17 @@
 # Conforme — Estado del proyecto y cómo continuar
 
 > **Documento de traspaso.** Si estás retomando este proyecto en una conversación nueva, leé
-> esto primero y después el spec. Última actualización: 2026-08-29, commit `537168e`.
-> **Fase 1A + 1B completas. Fase 2 casi completa (falta configurar Resend / Evolution API).
-> Único bloqueo real: el proyecto de Vercel — ver §7. Todo lo demás corre y se prueba en
-> local ya (ver §9).**
+> esto primero y después el spec. Última actualización: 2026-08-29, commit `1c7a52c`.
+> **Fase 1A + 1B completas. Fase 3 en curso: nueva estética, se quitó el envío de recibos
+> por email/WhatsApp/push, y el empleado ahora puede *rechazar* un recibo además de
+> conformarlo (ver §4 «Fase 3»). Único bloqueo real: el proyecto de Vercel — ver §7.**
 
 ---
 
 ## 1. Qué es Conforme
 
 Una aplicación que distribuye los recibos de sueldo que exporta **Tango Sueldos** a los
-empleados, y registra su **conformidad** con valor probatorio.
+empleados, y registra su **conformidad** —o su **rechazo**— con valor probatorio.
 
 El administrador conecta la carpeta donde Tango deja los PDFs, la app los clasifica leyendo
 el nombre del archivo, los cotea contra el padrón, los sube a Supabase Storage y publica la
@@ -72,7 +72,7 @@ RS_202604_1QA_680_201_20-27103275-8.pdf
 | `permisos.ts` | Matriz de roles `admin` / `operador` / `consulta` |
 | `entorno.ts` | Validación Zod de variables de entorno |
 
-**Base de datos** (`supabase/migrations/`) — los nueve archivos **ya se aplicaron y
+**Base de datos** (`supabase/migrations/`) — los diez archivos **ya se aplicaron y
 verificaron** en `twejfeghrujsqzzuzvtf` (ver §3):
 
 - `0001_esquema_base.sql` — empresas, personas, legajos, admin_usuarios, codigos_activacion
@@ -85,6 +85,9 @@ verificaron** en `twejfeghrujsqzzuzvtf` (ver §3):
 - `0008_hardening.sql` — `search_path` fijo, TRUNCATE en triggers de inmutabilidad,
   `revoke execute` a anon, políticas del empleado con `(select …)` y `recibos` filtra `vigente`
 - `0009_indices.sql` — índices sobre FK que se filtran; `admin_lee_su_ficha` con `(select …)`
+- `0010_rechazos.sql` — tabla `rechazos` (espejo de `conformidades`: solo inserción,
+  inmutable, `recibo_id` único, `motivo` obligatorio); RLS `admin_lee_rechazos` +
+  `empleado_lee_sus_rechazos`, sin política de INSERT
 
 **Clientes de Supabase** (`src/lib/supabase/`) — `tipos.ts` generado del esquema,
 `cliente-navegador.ts` / `cliente-servidor.ts` / `cliente-servicio.ts`.
@@ -260,6 +263,20 @@ Mientras un canal está inactivo, la cola lo marca así y reintenta; nada se pie
   endpoint es invocable a mano (`/admin/notificaciones` → «Procesar cola ahora»).
 - El label «Corregido» usa `version > 1`. Detección exacta («la v1 se conformó») necesita
   que la conformidad guarde la liquidación, que hoy no hace. Poco valor, se deja.
+
+### Fase 3 — estética, sin envíos, y rechazo del empleado (en curso)
+
+| Parte | Archivos | Commit |
+|---|---|---|
+| Nueva estética cálida (crema / naranja / marrón, serif en títulos), layout con barra lateral en `/admin`, primitivos `Tarjeta` / `Pastilla` / `BotonPrimario`, `Logo` / `Marca` | `globals.css`, `componentes/ui.tsx`, `componentes/logo.tsx`, `/admin/layout.tsx`, `/admin/nav.tsx` | `1c7a52c` |
+| Se quita el envío de recibos por email / WhatsApp / push: eliminada la cola de notificaciones, adaptadores, crons y el panel `/admin/notificaciones`. Se conserva el rate limiting. | `src/lib/notificaciones/**` (borrado), `src/acciones/push.ts` (borrado) | `5e0c18d` |
+| **Rechazo del empleado.** Tabla `rechazos` (espejo de `conformidades`: solo inserción, inmutable, una fila por recibo, `motivo` obligatorio). Server Action `rechazarRecibo(reciboId, motivo)` — conformar y rechazar son **excluyentes**, lo garantiza la acción. Pantalla `/mi/recibos/[id]/rechazar`. El tablero de `/admin/liquidaciones/[id]`, el CSV de seguimiento y la actividad reciente del panel muestran los rechazos con su motivo. | `0010_rechazos.sql`, `acciones/recibos-empleado.ts`, `/mi/(privado)/recibos/[id]/rechazar/**`, `/mi/(privado)/page.tsx`, `/admin/liquidaciones/[id]/**`, `/admin/page.tsx` | (este commit) |
+
+Estados de un recibo vigente publicado, para el empleado: **pendiente** → **conformado**
+(presta conformidad, se sella hash + hora + IP, recién ahí descarga) *o* **rechazado**
+(deja un motivo ≥ 3 caracteres; se sella hora + IP; queda firme, no puede conformar después).
+No hay política de INSERT en `rechazos`: se escribe solo por Server Action con la clave de
+servicio, igual que `conformidades`.
 
 ---
 

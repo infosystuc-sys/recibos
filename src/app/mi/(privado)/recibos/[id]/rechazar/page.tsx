@@ -4,9 +4,9 @@ import { formatearPeriodo } from '@/lib/periodo'
 import { exigirEmpleado } from '@/lib/sesion-empleado'
 import { clienteServidor } from '@/lib/supabase/cliente-servidor'
 import { ETIQUETA_TIPO, type TipoLiquidacion } from '@/lib/tango/parse-nombre-recibo'
-import FormularioConformidad from './formulario'
+import FormularioRechazo from './formulario'
 
-export default async function ConformarRecibo({ params }: { params: Promise<{ id: string }> }) {
+export default async function RechazarRecibo({ params }: { params: Promise<{ id: string }> }) {
   await exigirEmpleado()
   const { id } = await params
   const supabase = await clienteServidor()
@@ -14,7 +14,7 @@ export default async function ConformarRecibo({ params }: { params: Promise<{ id
   const { data: recibo } = await supabase
     .from('recibos')
     .select(
-      'id, version, estado, liquidaciones(periodo, tipo, dato_fijo, empresas(razon_social, texto_conformidad)), conformidades(id), rechazos(id)',
+      'id, version, estado, liquidaciones(periodo, tipo, dato_fijo, empresas(razon_social)), conformidades(id), rechazos(id)',
     )
     .eq('id', id)
     .maybeSingle()
@@ -33,7 +33,7 @@ export default async function ConformarRecibo({ params }: { params: Promise<{ id
       </Link>
 
       <div>
-        <h1 className="text-2xl font-semibold">Prestar conformidad</h1>
+        <h1 className="text-2xl font-semibold">Rechazar recibo</h1>
         <p className="mt-1 text-texto-suave">
           {empresas?.razon_social} · {formatearPeriodo(periodo)} ·{' '}
           {ETIQUETA_TIPO[tipo as TipoLiquidacion]} · Liq. {dato_fijo}
@@ -41,17 +41,13 @@ export default async function ConformarRecibo({ params }: { params: Promise<{ id
         </p>
       </div>
 
-      <blockquote className="rounded-lg border-l-4 border-blue-900 bg-neutral-50 px-4 py-3 text-base ">
-        {empresas?.texto_conformidad}
-      </blockquote>
-
       <p className="text-sm text-texto-suave">
-        Al confirmar se registran la fecha y hora del servidor, tu dispositivo y el hash del
-        documento exacto que estás firmando. Es un registro permanente y no se puede
-        deshacer.
+        Contanos qué está mal en el recibo. La administración va a recibir tu rechazo con el
+        motivo y la fecha. Queda registrado de forma permanente y no se puede deshacer; si
+        rechazás no vas a poder prestar conformidad a esta versión.
       </p>
 
-      <FormularioConformidad reciboId={recibo.id} />
+      <FormularioRechazo reciboId={recibo.id} />
     </section>
   )
 }

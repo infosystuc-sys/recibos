@@ -10,19 +10,19 @@ import Observaciones from './observaciones'
 
 interface Params {
   params: Promise<{ id: string }>
-  searchParams: Promise<{ conformado?: string }>
+  searchParams: Promise<{ conformado?: string; rechazado?: string }>
 }
 
 export default async function VerRecibo({ params, searchParams }: Params) {
   await exigirEmpleado()
   const { id } = await params
-  const { conformado } = await searchParams
+  const { conformado, rechazado } = await searchParams
   const supabase = await clienteServidor()
 
   const { data: recibo } = await supabase
     .from('recibos')
     .select(
-      'id, version, estado, storage_path, liquidaciones(periodo, tipo, empresas(razon_social)), conformidades(id, created_at, comprobante_codigo)',
+      'id, version, estado, storage_path, liquidaciones(periodo, tipo, empresas(razon_social)), conformidades(id, created_at, comprobante_codigo), rechazos(id, created_at, motivo)',
     )
     .eq('id', id)
     .maybeSingle()
@@ -30,6 +30,7 @@ export default async function VerRecibo({ params, searchParams }: Params) {
   if (!recibo || !recibo.liquidaciones) notFound()
 
   const conformidad = recibo.conformidades
+  const rechazo = recibo.rechazos
   const reemplazado = recibo.estado !== 'vigente'
   const periodo = recibo.liquidaciones.periodo
   const tipo = recibo.liquidaciones.tipo as TipoLiquidacion
@@ -61,6 +62,12 @@ export default async function VerRecibo({ params, searchParams }: Params) {
       {conformado && !reemplazado && (
         <p className="rounded-lg bg-exito-fondo px-4 py-3 text-base text-green-800 dark:bg-green-950 dark:text-green-200">
           Conformidad registrada. Ya podés descargar el recibo y el comprobante.
+        </p>
+      )}
+
+      {rechazado && !reemplazado && (
+        <p className="rounded-lg bg-error-fondo px-4 py-3 text-base text-red-800 dark:bg-red-950 dark:text-red-200">
+          Rechazo registrado. La administración va a recibir el aviso con tu motivo.
         </p>
       )}
 
@@ -96,6 +103,17 @@ export default async function VerRecibo({ params, searchParams }: Params) {
                   Descargar comprobante de conformidad
                 </Link>
               </>
+            ) : rechazo ? (
+              <>
+                <p className="text-base text-error">
+                  Rechazado el {new Date(rechazo.created_at).toLocaleString('es-AR')}
+                </p>
+                <p className="rounded-lg border border-borde bg-superficie-2 px-4 py-3 text-base">
+                  <span className="font-medium">Motivo: </span>
+                  {rechazo.motivo}
+                </p>
+                <DescargarRecibo reciboId={recibo.id} habilitado />
+              </>
             ) : (
               <>
                 <DescargarRecibo reciboId={recibo.id} habilitado={false} />
@@ -104,6 +122,12 @@ export default async function VerRecibo({ params, searchParams }: Params) {
                   className="rounded-lg bg-marron px-4 py-3 text-center text-lg font-medium text-white"
                 >
                   Prestar conformidad
+                </Link>
+                <Link
+                  href={`/mi/recibos/${recibo.id}/rechazar`}
+                  className="rounded-lg border border-error px-4 py-3 text-center text-base font-medium text-error"
+                >
+                  Rechazar recibo
                 </Link>
               </>
             )}

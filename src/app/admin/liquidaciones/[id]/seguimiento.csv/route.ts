@@ -9,6 +9,7 @@ interface Fila {
   cuil_archivo: string
   legajos: { numero: number; personas: { apellido_nombre: string; cuil: string } | null } | null
   conformidades: { created_at: string; comprobante_codigo: string; sha256_documento: string } | null
+  rechazos: { created_at: string; motivo: string } | null
 }
 
 function csvCampo(v: string): string {
@@ -30,7 +31,7 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
   const { data } = await supabase
     .from('recibos')
     .select(
-      'estado, cuil_archivo, legajos(numero, personas(apellido_nombre, cuil)), conformidades(created_at, comprobante_codigo, sha256_documento)',
+      'estado, cuil_archivo, legajos(numero, personas(apellido_nombre, cuil)), conformidades(created_at, comprobante_codigo, sha256_documento), rechazos(created_at, motivo)',
     )
     .eq('liquidacion_id', id)
 
@@ -45,16 +46,24 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
     'fecha_conformidad',
     'comprobante',
     'sha256_documento',
+    'motivo_rechazo',
   ]
+  const estado = (r: Fila) =>
+    r.conformidades ? 'conformado' : r.rechazos ? 'rechazado' : 'pendiente'
   const filas = vigentes.map((r) =>
     [
       String(r.legajos?.numero ?? ''),
       r.legajos?.personas?.apellido_nombre ?? '',
       formatearCuil(r.legajos?.personas?.cuil ?? r.cuil_archivo),
-      r.conformidades ? 'conformado' : 'pendiente',
-      r.conformidades ? new Date(r.conformidades.created_at).toISOString() : '',
+      estado(r),
+      r.conformidades
+        ? new Date(r.conformidades.created_at).toISOString()
+        : r.rechazos
+          ? new Date(r.rechazos.created_at).toISOString()
+          : '',
       r.conformidades?.comprobante_codigo ?? '',
       r.conformidades?.sha256_documento ?? '',
+      r.rechazos?.motivo ?? '',
     ]
       .map(csvCampo)
       .join(';'),

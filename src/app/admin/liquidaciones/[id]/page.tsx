@@ -30,7 +30,7 @@ export default async function PaginaLiquidacion({ params, searchParams }: Params
   const { data: recibos } = await supabase
     .from('recibos')
     .select(
-      'id, version, estado, nombre_original, cuil_archivo, legajos(numero, personas(apellido_nombre)), conformidades(created_at, comprobante_codigo)',
+      'id, version, estado, nombre_original, cuil_archivo, legajos(numero, personas(apellido_nombre)), conformidades(created_at, comprobante_codigo), rechazos(created_at, motivo)',
     )
     .eq('liquidacion_id', id)
     .order('version', { ascending: false })
@@ -38,16 +38,18 @@ export default async function PaginaLiquidacion({ params, searchParams }: Params
   const todos = recibos ?? []
   const vigentes = todos.filter((r) => r.estado === 'vigente')
   const conformados = vigentes.filter((r) => r.conformidades)
+  const rechazados = vigentes.filter((r) => r.rechazos && !r.conformidades)
   const porcentaje = vigentes.length
     ? Math.round((conformados.length / vigentes.length) * 100)
     : 0
 
+  const resuelto = (r: (typeof vigentes)[number]) => Boolean(r.conformidades || r.rechazos)
   const soloPendientes = pendientes === '1'
   const seguimiento = [...vigentes]
-    .filter((r) => !soloPendientes || !r.conformidades)
+    .filter((r) => !soloPendientes || !resuelto(r))
     .sort(
       (a, b) =>
-        Number(Boolean(a.conformidades)) - Number(Boolean(b.conformidades)) ||
+        Number(resuelto(a)) - Number(resuelto(b)) ||
         (a.legajos?.numero ?? 0) - (b.legajos?.numero ?? 0),
     )
 
@@ -107,6 +109,9 @@ export default async function PaginaLiquidacion({ params, searchParams }: Params
             </div>
             <p className="mt-1 text-sm">
               {conformados.length} de {vigentes.length} conformados ({porcentaje}%)
+              {rechazados.length > 0 && (
+                <> · <span className="text-error">{rechazados.length} rechazado(s)</span></>
+              )}
             </p>
           </div>
 
@@ -121,7 +126,7 @@ export default async function PaginaLiquidacion({ params, searchParams }: Params
               href={`/admin/liquidaciones/${id}?pendientes=1`}
               className={soloPendientes ? 'font-semibold' : 'underline'}
             >
-              Solo pendientes ({vigentes.length - conformados.length})
+              Solo pendientes ({vigentes.length - conformados.length - rechazados.length})
             </Link>
           </div>
           <div className="overflow-x-auto">
@@ -130,7 +135,7 @@ export default async function PaginaLiquidacion({ params, searchParams }: Params
                 <tr>
                   <th className="py-2">Legajo</th>
                   <th>Nombre</th>
-                  <th>Conformidad</th>
+                  <th>Estado</th>
                 </tr>
               </thead>
               <tbody>
@@ -143,6 +148,11 @@ export default async function PaginaLiquidacion({ params, searchParams }: Params
                         <span className="text-exito">
                           {new Date(r.conformidades.created_at).toLocaleString('es-AR')} ·{' '}
                           {r.conformidades.comprobante_codigo}
+                        </span>
+                      ) : r.rechazos ? (
+                        <span className="text-error">
+                          Rechazado {new Date(r.rechazos.created_at).toLocaleString('es-AR')} ·{' '}
+                          {r.rechazos.motivo}
                         </span>
                       ) : (
                         <span className="text-alerta">Pendiente</span>

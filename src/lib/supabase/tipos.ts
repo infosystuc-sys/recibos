@@ -613,6 +613,51 @@ export type Database = {
           },
         ]
       }
+      rechazos: {
+        Row: {
+          created_at: string
+          id: string
+          ip: unknown
+          motivo: string
+          persona_id: string
+          recibo_id: string
+          user_agent: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          ip?: unknown
+          motivo: string
+          persona_id: string
+          recibo_id: string
+          user_agent?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          ip?: unknown
+          motivo?: string
+          persona_id?: string
+          recibo_id?: string
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rechazos_persona_id_fkey"
+            columns: ["persona_id"]
+            isOneToOne: false
+            referencedRelation: "personas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rechazos_recibo_id_fkey"
+            columns: ["recibo_id"]
+            isOneToOne: true
+            referencedRelation: "recibos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       recibos: {
         Row: {
           bytes: number

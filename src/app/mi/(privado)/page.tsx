@@ -12,6 +12,7 @@ interface Fila {
   tipo: TipoLiquidacion
   empresa: string
   conformadaAt: string | null
+  rechazadaAt: string | null
 }
 
 export default async function MiInicio() {
@@ -21,7 +22,7 @@ export default async function MiInicio() {
   const { data } = await supabase
     .from('recibos')
     .select(
-      'id, version, estado, liquidaciones(periodo, tipo, empresas(razon_social)), conformidades(created_at)',
+      'id, version, estado, liquidaciones(periodo, tipo, empresas(razon_social)), conformidades(created_at), rechazos(created_at)',
     )
     .eq('estado', 'vigente')
 
@@ -34,6 +35,7 @@ export default async function MiInicio() {
       tipo: r.liquidaciones!.tipo,
       empresa: r.liquidaciones!.empresas?.razon_social ?? '—',
       conformadaAt: r.conformidades?.created_at ?? null,
+      rechazadaAt: r.rechazos?.created_at ?? null,
     }))
     .sort((a, b) => b.periodo - a.periodo || a.empresa.localeCompare(b.empresa))
 
@@ -71,7 +73,11 @@ export default async function MiInicio() {
                         {r.version > 1 && ` · versión ${r.version}`}
                       </div>
                     </div>
-                    <Estado conformadaAt={r.conformadaAt} corregido={r.version > 1} />
+                    <Estado
+                      conformadaAt={r.conformadaAt}
+                      rechazadaAt={r.rechazadaAt}
+                      corregido={r.version > 1}
+                    />
                   </Link>
                 </li>
               ))}
@@ -83,11 +89,26 @@ export default async function MiInicio() {
   )
 }
 
-function Estado({ conformadaAt, corregido }: { conformadaAt: string | null; corregido: boolean }) {
+function Estado({
+  conformadaAt,
+  rechazadaAt,
+  corregido,
+}: {
+  conformadaAt: string | null
+  rechazadaAt: string | null
+  corregido: boolean
+}) {
   if (conformadaAt) {
     return (
       <Pastilla tono="exito">
         Conformado {new Date(conformadaAt).toLocaleDateString('es-AR')}
+      </Pastilla>
+    )
+  }
+  if (rechazadaAt) {
+    return (
+      <Pastilla tono="error">
+        Rechazado {new Date(rechazadaAt).toLocaleDateString('es-AR')}
       </Pastilla>
     )
   }
