@@ -2,6 +2,7 @@
 # Nunca deben salir de esta máquina.
 /Ejemplo*/
 /recibos-prueba/
+/padron*.csv
 *.pdf
 # …pero el código fuente sí (hubo un route dir `constancias.pdf/` que esto se
 # tragaba; ahora se llama `constancias/`, pero por las dudas).
