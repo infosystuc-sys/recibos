@@ -5,7 +5,6 @@ export type CodigoDiagnostico =
   | 'LEGAJO_INEXISTENTE'
   | 'CUIL_NO_COINCIDE'
   | 'EMPLEADO_INACTIVO'
-  | 'FALTA_EN_LOTE'
   | 'DUPLICADO_EN_LOTE'
   | 'YA_SUBIDO'
   | 'REEMPLAZO'
@@ -143,18 +142,9 @@ export function cotejarLote({ lote, padron, existentes, hashes }: EntradaCotejo)
     publicables.push(archivo)
   }
 
-  const legajosEnLote = new Set(lote.archivos.map((a) => a.datos.legajo))
-  for (const entrada of padron) {
-    if (entrada.activo && !legajosEnLote.has(entrada.numero)) {
-      diagnosticos.push({
-        codigo: 'FALTA_EN_LOTE',
-        severidad: 'advertencia',
-        legajo: entrada.numero,
-        archivo: null,
-        detalle: `${entrada.nombre} está activo en el padrón pero no tiene recibo en esta liquidación.`,
-      })
-    }
-  }
+  // No se controla que cada legajo del padrón tenga recibo: el padrón es el
+  // universo de empleados de la empresa, no de quién cobra en esta liquidación
+  // (una quincena, un mensual y un lote de terceros cubren gente distinta).
 
   return {
     diagnosticos,

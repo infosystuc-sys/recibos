@@ -124,7 +124,9 @@ export default function SelectorCarpeta({ empresaId, onResultado }: Props) {
     try {
       let handle = nueva ? null : await recuperarHandle(empresaId)
       if (!handle) {
-        handle = await window.showDirectoryPicker({ id: `conforme-${empresaId}`, mode: 'read' })
+        // El `id` de showDirectoryPicker no puede pasar de 32 caracteres.
+        const id = `emp-${empresaId.replace(/-/g, '').slice(0, 12)}`
+        handle = await window.showDirectoryPicker({ id, mode: 'read' })
         await guardarHandle(empresaId, handle)
         setHandleRecordado(true)
       }

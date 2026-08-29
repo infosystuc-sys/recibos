@@ -72,15 +72,16 @@ describe('cotejarLote', () => {
     expect(resultado.publicables).toHaveLength(1)
   })
 
-  it('advierte cuando falta en el lote un legajo activo del padrón', () => {
+  it('no le importa que un legajo activo del padrón no esté en el lote', () => {
     const lote = loteDe('RS_202604_1QA_680_201_20-27103275-8.pdf')
     const padronActivo = PADRON.filter((l) => l.activo)
 
     const resultado = cotejarLote({ lote, padron: padronActivo, ...SIN_EXISTENTES })
 
-    expect(resultado.diagnosticos).toContainEqual(
-      expect.objectContaining({ codigo: 'FALTA_EN_LOTE', severidad: 'advertencia', legajo: 202 }),
-    )
+    // El padrón es el universo de empleados, no de quién cobra en esta
+    // liquidación: no se reporta la ausencia.
+    expect(resultado.diagnosticos).toEqual([])
+    expect(resultado.hayBloqueantes).toBe(false)
   })
 
   it('bloquea cuando el mismo legajo aparece dos veces en el lote', () => {
