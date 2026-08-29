@@ -1,9 +1,10 @@
 # Conforme — Estado del proyecto y cómo continuar
 
 > **Documento de traspaso.** Si estás retomando este proyecto en una conversación nueva, leé
-> esto primero y después el spec. Última actualización: 2026-08-28, commit `ccbcea7`.
-> **Fase 1A + 1B completas. Fase 2 casi completa (falta Resend). Único bloqueo real: el
-> proyecto de Vercel — ver §7. Todo lo demás corre en local.**
+> esto primero y después el spec. Última actualización: 2026-08-29, commit `537168e`.
+> **Fase 1A + 1B completas. Fase 2 casi completa (falta configurar Resend / Evolution API).
+> Único bloqueo real: el proyecto de Vercel — ver §7. Todo lo demás corre y se prueba en
+> local ya (ver §9).**
 
 ---
 
@@ -43,19 +44,13 @@ RS_202604_1QA_680_201_20-27103275-8.pdf
 
 | | |
 |---|---|
-| Rama | `fase1a-admin-ingesta` (creada desde `main` en `4e4a815`) |
-| Rama principal | `main`. Fase 1B y Fase 2 se commitean directo en `main`. |
-| HEAD | `ccbcea7` |
-| Commits | ~62 (más el `4e4a815` de base). **Pusheados hasta `25383a7`**; lo posterior (hardening, PDF de constancias, fixes) puede estar sin pushear — hacer `git push origin main`. |
-| Tests | **86 unitarios** + **13 de integración** + **3 E2E** de ingreso, todos verdes. Build y `tsc` limpios. Fase 1B/2 se verificaron con scripts E2E ad-hoc (ya borrados). |
-| Migraciones | **0001–0009 aplicadas.** 0007 rate limiting, 0008 hardening de RLS, 0009 índices. |
-| Advisors | Solo quedan: `rls_enabled_no_policy` en `codigos_activacion`/`intentos` (deliberado), `authenticated_security_definer_function_executable` x6 (funciones de RLS, inevitable, cada una chequea `auth.uid()` adentro), y `auth_leaked_password_protection` (solo Pro). |
-| TypeScript | `npx tsc --noEmit` limpio, modo estricto |
-| Build | `npm run build` verde |
-| GitHub | **`main` pusheado** a `infosystuc-sys/recibos` |
-| Vercel | **pendiente** — ya existe un proyecto llamado `recibos` (no visible en el team vía MCP; ver §7) |
-| Migraciones | **0001–0005 aplicadas** en `twejfeghrujsqzzuzvtf` y verificadas |
-| Tipos | `src/lib/supabase/tipos.ts` generado del esquema vivo |
+| Rama principal | `main`. Todo (Fase 1A/1B/2) se commitea directo en `main`. La vieja `fase1a-admin-ingesta` ya se mergeó por fast-forward. |
+| HEAD | `537168e` — **todo pusheado** a `infosystuc-sys/recibos` |
+| Tests | **86 unitarios** + **13 de integración** + **3 E2E** de ingreso, todos verdes. `tsc` y `build` limpios. Fase 1B/2 se verificaron con scripts E2E ad-hoc (ya borrados). |
+| Migraciones | **0001–0009 aplicadas y verificadas** en `twejfeghrujsqzzuzvtf`. 0006 publicación, 0007 rate limiting, 0008 hardening de RLS, 0009 índices. |
+| Tipos | `src/lib/supabase/tipos.ts` regenerado tras cada migración |
+| Advisors | Solo quedan: `rls_enabled_no_policy` en `codigos_activacion`/`intentos` (deliberado), `authenticated_security_definer_function_executable` x6 (funciones de RLS, inevitable, cada una chequea `auth.uid()` adentro), `auth_leaked_password_protection` (solo Pro). |
+| Vercel | **pendiente** — el conector MCP está roto para el team; hacer todo desde el panel (ver §7). |
 
 ### Lo que está hecho y revisado
 
@@ -77,7 +72,7 @@ RS_202604_1QA_680_201_20-27103275-8.pdf
 | `permisos.ts` | Matriz de roles `admin` / `operador` / `consulta` |
 | `entorno.ts` | Validación Zod de variables de entorno |
 
-**Base de datos** (`supabase/migrations/`) — los seis archivos **ya se aplicaron y
+**Base de datos** (`supabase/migrations/`) — los nueve archivos **ya se aplicaron y
 verificaron** en `twejfeghrujsqzzuzvtf` (ver §3):
 
 - `0001_esquema_base.sql` — empresas, personas, legajos, admin_usuarios, codigos_activacion
