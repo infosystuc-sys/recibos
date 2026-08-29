@@ -46,7 +46,7 @@ RS_202604_1QA_680_201_20-27103275-8.pdf
 |---|---|
 | Rama principal | `main`. Todo (Fase 1A/1B/2) se commitea directo en `main`. La vieja `fase1a-admin-ingesta` ya se mergeó por fast-forward. |
 | HEAD | `537168e` — **todo pusheado** a `infosystuc-sys/recibos` |
-| Tests | **86 unitarios** + **13 de integración** + **3 E2E** de ingreso, todos verdes. `tsc` y `build` limpios. Fase 1B/2 se verificaron con scripts E2E ad-hoc (ya borrados). |
+| Tests | **87 unitarios** + **13 de integración** + **3 E2E** de ingreso, todos verdes. `tsc` y `build` limpios. Fase 1B/2 se verificaron con scripts E2E ad-hoc (ya borrados). |
 | Migraciones | **0001–0009 aplicadas y verificadas** en `twejfeghrujsqzzuzvtf`. 0006 publicación, 0007 rate limiting, 0008 hardening de RLS, 0009 índices. |
 | Tipos | `src/lib/supabase/tipos.ts` regenerado tras cada migración |
 | Advisors | Solo quedan: `rls_enabled_no_policy` en `codigos_activacion`/`intentos` (deliberado), `authenticated_security_definer_function_executable` x6 (funciones de RLS, inevitable, cada una chequea `auth.uid()` adentro), `auth_leaked_password_protection` (solo Pro). |
@@ -62,7 +62,7 @@ RS_202604_1QA_680_201_20-27103275-8.pdf
 | `periodo.ts` | `202604` → `"Abril 2026"` |
 | `tango/parse-nombre-recibo.ts` | Nombre de archivo → período, tipo, dato fijo, legajo, CUIL |
 | `tango/agrupar-lotes.ts` | Agrupa archivos escaneados en liquidaciones |
-| `tango/cotejar-lote.ts` | Los 7 diagnósticos contra el padrón, incluido `CUIL_NO_COINCIDE` |
+| `tango/cotejar-lote.ts` | Diagnósticos del lote contra el padrón: `LEGAJO_INEXISTENTE`, `CUIL_NO_COINCIDE`, `EMPLEADO_INACTIVO`, `DUPLICADO_EN_LOTE`, `YA_SUBIDO`, `REEMPLAZO`. **`FALTA_EN_LOTE` se sacó** (decisión del usuario, `858abef`): el padrón es el universo de empleados, no la lista de quién cobra en cada liquidación. |
 | `padron/parse-csv-padron.ts` | Importador del CSV de Tango con errores por fila |
 | `codigo-activacion.ts` | Genera y hashea códigos de activación de un solo uso |
 | `carpeta/escanear.ts` | Escaneo recursivo de la carpeta, probable sin navegador |
