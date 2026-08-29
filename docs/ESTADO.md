@@ -47,7 +47,7 @@ RS_202604_1QA_680_201_20-27103275-8.pdf
 | Rama principal | `main`. Fase 1B y Fase 2 se commitean directo en `main`. |
 | HEAD | `ccbcea7` |
 | Commits | ~62 (más el `4e4a815` de base). **Pusheados hasta `25383a7`**; lo posterior (hardening, PDF de constancias, fixes) puede estar sin pushear — hacer `git push origin main`. |
-| Tests | **84 unitarios** + **13 de integración** + **3 E2E** de ingreso, todos verdes. Build y `tsc` limpios. Fase 1B/2 se verificaron con scripts E2E ad-hoc (ya borrados). |
+| Tests | **86 unitarios** + **13 de integración** + **3 E2E** de ingreso, todos verdes. Build y `tsc` limpios. Fase 1B/2 se verificaron con scripts E2E ad-hoc (ya borrados). |
 | Migraciones | **0001–0009 aplicadas.** 0007 rate limiting, 0008 hardening de RLS, 0009 índices. |
 | Advisors | Solo quedan: `rls_enabled_no_policy` en `codigos_activacion`/`intentos` (deliberado), `authenticated_security_definer_function_executable` x6 (funciones de RLS, inevitable, cada una chequea `auth.uid()` adentro), y `auth_leaked_password_protection` (solo Pro). |
 | TypeScript | `npx tsc --noEmit` limpio, modo estricto |
@@ -352,9 +352,12 @@ Para triaje en la revisión final, ninguno bloqueante:
 - CSV: campos entre comillas con salto de línea literal; `trim()` sobre campos citados; sin
   test de fila con menos campos que la cabecera.
 - `puede_operar()` está definida y todavía sin uso (la usa la Fase 1B).
-- **`importarPadron` pisa `email`/`telefono` de `personas` con `null`** si el CSV no trae
-  esas columnas (upsert por `cuil`). Tango siempre exporta las mismas columnas, así que en
-  la práctica no se pierde nada, pero un CSV recortado a mano sí borraría los contactos.
+- ~~**`importarPadron` pisa `email`/`telefono` con `null`**~~ resuelto: solo se actualizan
+  si el CSV trae un valor.
+- El padrón acepta dos formatos: columna única `apellido_nombre` (CSV de Tango) o `apellido`
+  + `nombre` por separado (se arma `Apellido, Nombre`). Hay plantilla descargable en
+  `/admin/empleados/importar` (`/admin/empleados/importar/plantilla-padron`): columnas
+  `Número de legajo;Apellido;Nombre;CUIL;Mail;Celular`.
 - `importarPadron` hace un round-trip por fila (upsert persona + insert/update legajo). Con
   padrones grandes conviene lotear. No bloquea a la escala esperada (decenas–cientos).
 - El registro en `importaciones` guarda `errores: 0` siempre: la pantalla filtra las filas
