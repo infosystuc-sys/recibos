@@ -38,3 +38,4 @@ Desktop.ini
 
 # TypeScript incremental build info
 tsconfig.tsbuildinfo
+.env*

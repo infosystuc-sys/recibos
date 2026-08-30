@@ -1,10 +1,11 @@
 # Conforme — Estado del proyecto y cómo continuar
 
 > **Documento de traspaso.** Si estás retomando este proyecto en una conversación nueva, leé
-> esto primero y después el spec. Última actualización: 2026-08-29, commit `1c7a52c`.
-> **Fase 1A + 1B completas. Fase 3 en curso: nueva estética, se quitó el envío de recibos
-> por email/WhatsApp/push, y el empleado ahora puede *rechazar* un recibo además de
-> conformarlo (ver §4 «Fase 3»). Único bloqueo real: el proyecto de Vercel — ver §7.**
+> esto primero y después el spec. Última actualización: 2026-08-29, commit `1145fd8`.
+> **Fase 1A + 1B completas y DEPLOYADAS** (https://conforme-orpin.vercel.app, auto-deploy en
+> cada push a `main`). **Fase 3 en curso:** nueva estética, se quitó el envío de recibos por
+> email/WhatsApp/push, y el empleado ahora puede *rechazar* un recibo además de conformarlo
+> (ver §4 «Fase 3»). Sin bloqueos.
 
 ---
 
@@ -45,12 +46,12 @@ RS_202604_1QA_680_201_20-27103275-8.pdf
 | | |
 |---|---|
 | Rama principal | `main`. Todo (Fase 1A/1B/2) se commitea directo en `main`. La vieja `fase1a-admin-ingesta` ya se mergeó por fast-forward. |
-| HEAD | `537168e` — **todo pusheado** a `infosystuc-sys/recibos` |
-| Tests | **87 unitarios** + **13 de integración** + **3 E2E** de ingreso, todos verdes. `tsc` y `build` limpios. Fase 1B/2 se verificaron con scripts E2E ad-hoc (ya borrados). |
-| Migraciones | **0001–0009 aplicadas y verificadas** en `twejfeghrujsqzzuzvtf`. 0006 publicación, 0007 rate limiting, 0008 hardening de RLS, 0009 índices. |
+| HEAD | `1145fd8` — **todo pusheado** a `infosystuc-sys/recibos` |
+| Tests | **81 unitarios** + integración + **3 E2E** de ingreso, todos verdes. `tsc` y `build` limpios. (Los 3 archivos de integración fallan sin `.env` cargado, es esperado.) |
+| Migraciones | **0001–0010 aplicadas y verificadas** en `twejfeghrujsqzzuzvtf`. 0006 publicación, 0007 rate limiting, 0008 hardening de RLS, 0009 índices, 0010 rechazos. |
 | Tipos | `src/lib/supabase/tipos.ts` regenerado tras cada migración |
 | Advisors | Solo quedan: `rls_enabled_no_policy` en `codigos_activacion`/`intentos` (deliberado), `authenticated_security_definer_function_executable` x6 (funciones de RLS, inevitable, cada una chequea `auth.uid()` adentro), `auth_leaked_password_protection` (solo Pro). |
-| Vercel | **pendiente** — el conector MCP está roto para el team; hacer todo desde el panel (ver §7). |
+| Vercel | **DEPLOYADO** — producción en https://conforme-orpin.vercel.app. Proyecto `conforme` (`prj_ZHGgX7MpVL21ym1zFQa1s9UuXkyS`) en el team `infosystuc-4207s-projects`, conectado a git: cada push a `main` deploya solo. Se hizo con la CLI (`vercel --prod`). Ver §7. |
 
 ### Lo que está hecho y revisado
 
@@ -437,9 +438,16 @@ Para triaje en la revisión final, ninguno bloqueante:
 |---|---|---|
 | GitHub | https://github.com/infosystuc-sys/recibos | **`main` pusheado** (41 commits). `origin` configurado y trackeando. |
 | Supabase | https://supabase.com/dashboard/project/twejfeghrujsqzzuzvtf | **Operativo** vía Personal Access Token (CLI + Management API). Org `uthumtopjpmokeguoiew`. Conector MCP: sigue sin conectar. |
-| Vercel | https://vercel.com/infosystuc-4207s-projects | Team `team_Pgq151Al9nDgNFPO8prQAb78` (plan Hobby). **El conector MCP de Vercel está roto para este team**: `list_projects` y `get_project` devuelven vacío/404 aunque `create_git_project` "crea" proyectos (`recibos` → 409 already exists; `conforme` → creado como `prj_ZHGgX7MpVL21ym1zFQa1s9UuXkyS` pero no verificable ni visible). Además la GitHub App de Vercel no está conectada a `infosystuc-sys`. **Hay que hacerlo todo desde el panel web** y probablemente limpiar los proyectos a medio crear. |
+| Vercel | https://conforme-orpin.vercel.app · panel: https://vercel.com/infosystuc-4207s-projects/conforme | **Operativo.** Team `team_Pgq151Al9nDgNFPO8prQAb78` (plan Hobby). Proyecto `conforme` = `prj_ZHGgX7MpVL21ym1zFQa1s9UuXkyS`, conectado a `infosystuc-sys/recibos`, rama de producción `main` → auto-deploy en cada push. El conector MCP de Vercel seguía roto; se resolvió con la **CLI** (`vercel login` → `vercel link` → `vercel --prod`). Las variables se cargaron por el panel (Production + Preview). |
 
-La CLI de Vercel no está instalada. `gh` tampoco.
+La CLI de Vercel **sí está instalada** (`vercel` 59.5.0, vía npm global). Con `vercel login` ya autenticado. `gh` no está instalado.
+
+**Variables en Vercel (Production + Preview):** solo hacen falta 4 —
+`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`,
+`EMPLEADO_EMAIL_DOMAIN`. Las demás (`VAPID_*`, `CRON_SECRET`, `APP_URL`, `ADMIN_*_PRUEBA`)
+quedaron cargadas pero **ya no las usa nadie** desde que se quitó el envío de recibos (commit
+`5e0c18d`); se pueden borrar. Verificado post-deploy: `/` 200, `/admin` y `/mi` → 307 a login,
+sin `service_role` en el JS del cliente, variables de prod idénticas a `.env.local`.
 
 ---
 
@@ -457,28 +465,22 @@ revisión queda limpia.
   misma carpeta: `extraer-brief.sh <plan> <numero> <destino>`. Es necesario porque el plan
   está en español y el script que trae la skill busca encabezados en inglés (`## Task N`).
 
-**Lo que falta del deploy** (el código está y compila; todo desde el panel de Vercel):
+**Deploy: hecho** (2026-08-29). Producción en https://conforme-orpin.vercel.app, proyecto
+`conforme` conectado a git (auto-deploy en cada push a `main`). Se hizo con la CLI:
+`vercel login` → `vercel link` (el proyecto ya existía y estaba linkeado a git) →
+`vercel --prod`. Variables cargadas por el panel (Production + Preview); solo se usan 4
+(ver §7). Verificado post-deploy (`/` 200, rutas privadas → 307, sin `service_role` en el
+cliente, paridad de variables con `.env.local`).
 
-1. **Conectar la GitHub App de Vercel al org `infosystuc-sys`** (Vercel → Settings →
-   Git → GitHub → configurar acceso al repo `recibos`).
-2. **Un solo proyecto en el team** `infosystuc-4207's projects` linkeado a
-   `infosystuc-sys/recibos`, rama de producción `main`. Borrar los que quedaron a medias
-   (`recibos` y/o `conforme` / `prj_ZHGgX7MpVL21ym1zFQa1s9UuXkyS`).
-3. **Cargar variables** en Production, Preview y Development (valores en `.env.local`,
-   menos `APP_URL` que apunta al dominio real):
-   `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`,
-   `SUPABASE_SERVICE_ROLE_KEY` (sin `NEXT_PUBLIC_`), `EMPLEADO_EMAIL_DOMAIN`, `APP_URL`,
-   `CRON_SECRET`, `VAPID_PUBLIC_KEY`, `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`,
-   `VAPID_SUBJECT`. Email: `RESEND_API_KEY` + `EMAIL_FROM` cuando el dominio esté
-   verificado en Resend.
-4. **Verificar el deploy:** `/` muestra la landing; `/admin` → `/ingresar`; login con
-   `taroriva5199@gmail.com`; `/mi` → `/mi/ingresar`; y en el JS servido **no aparece
-   `service_role`** (verificado sobre el build local).
-5. El cron `/api/cron/notificaciones` corre solo (Vercel Cron); en Hobby puede ser 1/día.
+**Pendiente / próximo:**
 
-**Después del deploy:** verificar email con Resend, sumar Serwist (cacheo offline de la
-PWA), el PDF combinado de constancias, y el resto de la Fase 3. El hardening diferido de la
-Fase 1A (§5) es opcional y se puede intercalar.
+- Borrar de Vercel las variables muertas (`VAPID_*`, `CRON_SECRET`, `APP_URL`) — no rompen
+  nada, pero ensucian.
+- Probar en un celular real: PWA instalable, conformar y **rechazar** un recibo.
+- Serwist / cacheo offline de la PWA (se pospuso: `@serwist/next` sin compat confirmada con
+  Next 16).
+- Resto de la Fase 3 según pida el usuario. El hardening diferido de la Fase 1A (§5) es
+  opcional.
 
 Notas para retomar:
 
